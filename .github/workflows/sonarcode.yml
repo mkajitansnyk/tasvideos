@@ -1,4 +1,4 @@
-name: Sonarcode
+name: Build
 on:
   push:
     branches:
@@ -36,25 +36,12 @@ jobs:
         run: |
           New-Item -Path .\.sonar\scanner -ItemType Directory
           dotnet tool update dotnet-sonarscanner --tool-path .\.sonar\scanner
-      - name: Set up .NET Core 5
-        uses: actions/setup-dotnet@v1
-        with:
-          dotnet-version: 5.0.100
-      - name: Set up .NET Core 3.1.x
-        uses: actions/setup-dotnet@v1
-        with:
-          dotnet-version: 3.1.404
-      - name: Install dependencies
-        run: dotnet restore
-      - name: git fetch
-        run: git fetch
-
       - name: Build and analyze
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         shell: powershell
         run: |
-          .\.sonar\scanner\dotnet-sonarscanner begin /k:"meshuggahtas_tasvideos" /o:"meshuggahtas" /d:sonar.login="${{ secrets.SONAR_TOKEN }}" /d:sonar.host.url="https://sonarcloud.io"
-          dotnet build --configuration Release --no-restore
+          .\.sonar\scanner\dotnet-sonarscanner begin /k:"meshuggahtas_tasvideos2" /o:"meshuggahtas" /d:sonar.login="${{ secrets.SONAR_TOKEN }}" /d:sonar.host.url="https://sonarcloud.io"
+          <insert_your_build_command>
           .\.sonar\scanner\dotnet-sonarscanner end /d:sonar.login="${{ secrets.SONAR_TOKEN }}"
