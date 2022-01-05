@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System.ComponentModel;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -41,6 +42,10 @@ namespace TASVideos.Pages.Forum.Posts
 		[BindProperty]
 		public ForumPostCreateModel Post { get; set; } = new ();
 
+		[BindProperty]
+		[DisplayName("Watch Topic for Replies")]
+		public bool WatchTopic { get; set; }
+
 		public async Task<IActionResult> OnGet()
 		{
 			var seeRestricted = User.Has(PermissionTo.SeeRestrictedForums);
@@ -73,6 +78,8 @@ namespace TASVideos.Pages.Forum.Posts
 
 				Post.Text = $"[quote=\"{post.Poster!.UserName}\"]{post.Text}[/quote]";
 			}
+
+			WatchTopic = await _topicWatcher.IsWatchingTopic(TopicId, User.GetUserId());
 
 			return Page();
 		}
@@ -124,14 +131,14 @@ namespace TASVideos.Pages.Forum.Posts
 				return AccessDenied();
 			}
 
-			var id = await CreatePost(TopicId, topic.ForumId, Post, user.Id, IpAddress);
+			var id = await CreatePost(TopicId, topic.ForumId, Post, user.Id, IpAddress, WatchTopic);
 
 			var mood = Post.Mood != ForumPostMood.Normal ? $" Mood: ({Post.Mood})" : "";
 			await _publisher.SendForum(
 				topic.Forum.Restricted,
 				$"New reply by {user.UserName}{mood}",
 				$"({topic.Forum.ShortName}: {topic.Title}) ({Post.Subject})",
-				$"forum/p/{id}#{id}",
+				$"Forum/p/{id}#{id}",
 				$"{user.UserName}{mood}");
 
 			await _topicWatcher.NotifyNewPost(new TopicNotification(

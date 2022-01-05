@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System.ComponentModel;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -37,6 +38,10 @@ namespace TASVideos.Pages.Forum.Posts
 
 		[BindProperty]
 		public ForumPostEditModel Post { get; set; } = new ();
+
+		[BindProperty]
+		[DisplayName("Minor Edit")]
+		public bool MinorEdit { get; set; } = false;
 
 		public async Task<IActionResult> OnGet()
 		{
@@ -126,13 +131,13 @@ namespace TASVideos.Pages.Forum.Posts
 			forumPost.PosterMood = Post.Mood;
 
 			var result = await ConcurrentSave(_db, $"Post {Id} edited", "Unable to edit post");
-			if (result)
+			if (result && !MinorEdit)
 			{
 				await _publisher.SendForum(
 					forumPost.Topic!.Forum!.Restricted,
 					$"Post edited by {User.Name()} ({forumPost.Topic.Forum.ShortName}: {forumPost.Topic.Title})",
 					"",
-					$"p/{Id}#{Id}",
+					$"Forum/p/{Id}#{Id}",
 					User.Name());
 			}
 

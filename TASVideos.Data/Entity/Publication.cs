@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using System.Globalization;
 using System.Linq;
 using TASVideos.Common;
 using TASVideos.Data.Entity.Awards;
@@ -27,6 +26,7 @@ namespace TASVideos.Data.Entity
 		IEnumerable<int> Games { get; }
 		IEnumerable<int> GameGroups { get; }
 		bool ShowObsoleted { get; }
+		bool OnlyObsoleted { get; }
 	}
 
 	public class Publication : BaseEntity, ITimeable
@@ -123,7 +123,7 @@ namespace TASVideos.Data.Entity
 			Title =
 				$"{System.Code} {Game.DisplayName}"
 				+ (!string.IsNullOrWhiteSpace(Branch) ? $" \"{Branch}\"" : "")
-				+ $" by {string.Join(", ", authorList)}"
+				+ $" by {string.Join(", ", authorList).LastCommaToAmpersand()}"
 				+ $" in {this.Time().ToStringWithOptionalDaysAndHours()}";
 		}
 	}
@@ -187,7 +187,11 @@ namespace TASVideos.Data.Entity
 				query = query.Where(p => tokens.Classes.Contains(p.PublicationClass!.Name));
 			}
 
-			if (!tokens.ShowObsoleted)
+			if (tokens.OnlyObsoleted)
+			{
+				query = query.ThatAreObsolete();
+			}
+			else if (!tokens.ShowObsoleted)
 			{
 				query = query.ThatAreCurrent();
 			}

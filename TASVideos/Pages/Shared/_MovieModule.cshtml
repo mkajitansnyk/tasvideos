@@ -47,23 +47,25 @@
 }
 <card class="border border-primary">
 	<cardheader class="bg-cardprimary p-2">
-		<row class="gx-3">
-			<div class="col-auto pe-0" condition="!string.IsNullOrWhiteSpace(Model.ClassIconPath)">
-				<img style="width: 18px" src="/@classIconPath2X"
-					 srcset="/@Model.ClassIconPath .5x,
-					 /@classIconPath2X 1x,
-					 /@classIconPath4X 2x" />
+		<div class="gx-3 clearfix">
+			<div class="float-start" condition="!string.IsNullOrWhiteSpace(Model.ClassIconPath)">
+				<img  class="me-1" width="18" src="/@classIconPath2X"
+					srcset="/@Model.ClassIconPath .5x,
+					/@classIconPath2X 1x,
+					/@classIconPath4X 2x" />
 			</div>
-			<h4 class="col m-0"><a asp-page="View" asp-route-id="@Model.Id" class="text-decoration-none"><span class="text-dark">@Model.Title</span></a></h4>
-			<div class="col-auto ps-0">
+			<div class="float-end">
 				@foreach (var flag in Model.Flags.Where(f => !string.IsNullOrWhiteSpace(f.IconPath)))
 				{
 					<a href="@flag.LinkPath">
-						<img class="pixelart-image" title="@flag.Name" alt="[@flag.Name]" src="/@flag.IconPath" />
+						<img class="ms-1" title="@flag.Name" alt="[@flag.Name]" src="/@flag.IconPath" />
 					</a>
 				}
 			</div>
-		</row>
+			<h4>
+				<a asp-page="View" asp-route-id="@Model.Id" class="text-decoration-none"><span class="text-dark">@Model.Title </span></a>
+			</h4>
+		</div>
 	</cardheader>
 	<cardbody class="px-2 py-0">
 		<div condition="@Model.ObsoletedById.HasValue" class="col card-subtitle text-dark my-2">
@@ -87,7 +89,7 @@
 					<a asp-page="/Publications/View" asp-page-handler="Download" asp-route-id="@Model.Id" class="btn btn-primary btn-sm mt-1"><i class="fa fa-download"></i> Download (@System.IO.Path.GetExtension(Model.MovieFileName))</a>
 				</div>
 				<div>
-					<a asp-page="/Submissions/View" asp-route-id="@Model.SubmissionId" class="btn btn-secondary btn-sm mt-1"><i class="fa fa-info-circle"></i> Submission</a>
+					<a asp-page="/Submissions/View" asp-route-id="@Model.SubmissionId" class="btn btn-secondary btn-sm mt-1"><i class="fa fa-info-circle"></i> Author notes</a>
 					<a condition="@Model.TopicId > 0"
 					   asp-page="/Forum/Topics/Index"
 					   asp-route-id="@Model.TopicId"
@@ -101,21 +103,6 @@
 					</a>
 					<a asp-page="/Ratings/Index" asp-route-id="@Model.Id" class="btn btn-secondary btn-sm mt-1"><i class="fa fa-list-ul"></i> Votes: @Model.RatingCount</a>
 				</div>
-				<div>
-					<a permission="EditPublicationMetaData"
-					   asp-page="Edit"
-					   asp-route-id="@Model.Id"
-					   class="btn btn-secondary btn-sm border border-warning mt-1"><i class="fa fa-pencil"></i> Edit</a>
-					<a permission="CatalogMovies"
-					   asp-page="/Publications/Catalog"
-					   asp-route-id="@Model.Id"
-					   class="btn btn-secondary btn-sm border border-warning mt-1"><i class="fa fa-book"></i> Catalog</a>
-					<a permission="EditPublicationMetaData"
-					   href="/MovieMaintenanceLog?id=@Model.Id"
-					   class="btn btn-secondary btn-sm border border-warning mt-1">
-						<i class="fa fa-history"></i> Logs
-					</a>
-				</div>
 				@foreach (var award in publicationAwards.OrderByDescending(a => a.Year))
 				{
 					<partial name="_Award" model="award" />
@@ -123,9 +110,9 @@
 			</div>
 			<div class="col-md">
 				<fullrow>
-					<div><small>@Model.CreateTimestamp.Date.ToShortDateString()</small></div>
 					@await Component.RenderWiki(LinkConstants.PublicationWikiPage + Model.Id)
 				</fullrow>
+				<div><small>Published on @Model.CreateTimestamp.Date.ToShortDateString()</small></div>
 			</div>
 		</row>
 		<row condition="Model.ObsoletedMovies.Any()" class="my-2 gx-3">
@@ -202,6 +189,23 @@
 						<a class="ms-2" title="@file.Path" asp-page="/Publications/View" asp-page-handler="DownloadAdditional" asp-route-fileId="@file.Id">(@file.Description)</a>
 					}
 				</small>
+			</div>
+			<div class="col">
+				<div class="float-end">
+					<a permission="EditPublicationMetaData"
+					   asp-page="Edit"
+					   asp-route-id="@Model.Id"
+					   class="btn btn-secondary btn-sm border border-warning mt-1"><i class="fa fa-pencil"></i> Edit</a>
+					<a permission="CatalogMovies"
+					   asp-page="/Publications/Catalog"
+					   asp-route-id="@Model.Id"
+					   class="btn btn-secondary btn-sm border border-warning mt-1"><i class="fa fa-book"></i> Catalog</a>
+					<a permission="EditPublicationMetaData"
+					   href="/MovieMaintenanceLog?id=@Model.Id"
+					   class="btn btn-secondary btn-sm border border-warning mt-1">
+						<i class="fa fa-history"></i> Logs
+					</a>
+				</div>
 			</div>
 		</row>
 	</cardbody>

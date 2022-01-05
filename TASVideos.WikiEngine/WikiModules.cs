@@ -13,7 +13,6 @@ namespace TASVideos.WikiEngine
 		public const string ActiveTab = "activetab";
 		public const string AviEncodes = "aviencodes";
 		public const string CurrentEditLink = "wikigetcurrenteditlink";
-		public const string DailyMotion = "dailymotion";
 		public const string DisplayGameName = "displaygamename";
 		public const string DisplayMiniMovie = "displayminimovie";
 		public const string DisplayMovies = "displaymovie";
@@ -25,8 +24,6 @@ namespace TASVideos.WikiEngine
 		public const string GameName = "gamename";
 		public const string GameSubPages = "gamesubpages";
 		public const string ListLanguages = "listlanguages";
-		public const string ListParents = "listparents";
-		public const string ListSubPages = "listsubpages";
 		public const string MediaPosts = "mediaposts";
 		public const string MovieChangeLog = "moviechangelog";
 		public const string MoviesByAuthor = "moviesbyplayer";

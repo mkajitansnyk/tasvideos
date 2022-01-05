@@ -123,12 +123,16 @@ namespace TASVideos.Core.Services
 		{
 			get
 			{
-				_cache.TryGetValue($"{CacheKeys.CurrentWikiCache}-{pageName}", out WikiPage page);
+				_cache.TryGetValue($"{CacheKeys.CurrentWikiCache}-{pageName.ToLower()}", out WikiPage page);
 				return page;
 			}
 
-			set => _cache.Set($"{CacheKeys.CurrentWikiCache}-{pageName}", value, Durations.OneDayInSeconds);
+			set => _cache.Set($"{CacheKeys.CurrentWikiCache}-{pageName.ToLower()}", value, Durations.OneDayInSeconds);
 		}
+
+		private void RemovePageFromCache(string pageName) =>
+			_cache.Remove($"{CacheKeys.CurrentWikiCache}-{pageName.ToLower()}");
+		
 
 		public async Task<IEnumerable<WikiOrphan>> Orphans() => await _db.WikiPages
 				.ThatAreNotDeleted()
@@ -349,10 +353,13 @@ namespace TASVideos.Core.Services
 			// broken and it is important to keep them listed as broken so they
 			// can show up in the Broken Links module for editors to see and fix.
 			// Anyone doing a move operation should know to check broken links afterwards
+			
 			var cachedRevision = this[originalName];
 			if (cachedRevision is not null)
 			{
+				RemovePageFromCache(originalName);
 				cachedRevision.PageName = destinationName;
+				_cache.Set(destinationName, cachedRevision);
 			}
 
 			return true;
@@ -524,7 +531,7 @@ namespace TASVideos.Core.Services
 
 		private void ClearCache(string pageName)
 		{
-			_cache.Remove(CacheKeys.CurrentWikiCache + "-" + pageName);
+			_cache.Remove(CacheKeys.CurrentWikiCache + "-" + pageName.ToLower());
 		}
 
 		private async Task GenerateReferrals(string pageName, string markup)

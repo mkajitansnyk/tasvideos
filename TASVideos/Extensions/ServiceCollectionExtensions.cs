@@ -88,6 +88,9 @@ namespace TASVideos.Extensions
 					options.Conventions.AddFolderApplicationModelConvention(
 						"/",
 						model => model.Filters.Add(new SetPageViewBagAttribute()));
+					options.Conventions.AddFolderApplicationModelConvention(
+						"/",
+						model => model.Filters.Add(new Debouncer()));
 					options.Conventions.AddPageRoute("/Games/Index", "{id:int}G");
 					options.Conventions.AddPageRoute("/Submissions/Index", "Subs-{query}");
 					options.Conventions.AddPageRoute("/Submissions/Index", "Subs-List");
@@ -138,13 +141,14 @@ namespace TASVideos.Extensions
 		{
 			services.AddIdentity<User, Role>(config =>
 				{
-					config.SignIn.RequireConfirmedEmail = false;
+					config.SignIn.RequireConfirmedEmail = env.IsProduction() || env.IsStaging();
 					config.Password.RequiredLength = 12;
 					config.Password.RequireDigit = false;
 					config.Password.RequireLowercase = false;
 					config.Password.RequireNonAlphanumeric = false;
 					config.Password.RequiredUniqueChars = 4;
 					config.User.RequireUniqueEmail = true;
+					config.User.AllowedUserNameCharacters += "āâãáéëöú£ "; // The space is intentional
 				})
 				.AddEntityFrameworkStores<ApplicationDbContext>()
 				.AddDefaultTokenProviders();
