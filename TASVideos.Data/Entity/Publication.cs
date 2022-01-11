@@ -27,6 +27,8 @@ namespace TASVideos.Data.Entity
 		IEnumerable<int> GameGroups { get; }
 		bool ShowObsoleted { get; }
 		bool OnlyObsoleted { get; }
+		string SortBy { get; }
+		int? Limit { get; }
 	}
 
 	public class Publication : BaseEntity, ITimeable
@@ -219,6 +221,27 @@ namespace TASVideos.Data.Entity
 			if (tokens.Authors.Any())
 			{
 				query = query.Where(p => p.Authors.Select(a => a.UserId).Any(a => tokens.Authors.Contains(a)));
+			}
+
+			if (!string.IsNullOrEmpty(tokens.SortBy))
+			{
+				query = tokens.SortBy switch
+				{
+					"v" => query.OrderBy(p => p.CreateTimestamp),
+					"u" => query.OrderByDescending(p => p.CreateTimestamp),
+					_ => query
+				};
+			}
+			else
+			{
+				query = query
+					.OrderBy(p => p.System!.Code)
+					.ThenBy(p => p.Game!.DisplayName);
+			}
+
+			if (tokens.Limit.HasValue)
+			{
+				query = query.Take(tokens.Limit.Value);
 			}
 
 			return query;

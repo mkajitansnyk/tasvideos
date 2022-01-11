@@ -79,16 +79,17 @@ namespace TASVideos.TagHelpers
 				return false;
 			}
 
-			var viewActiveTab = (string)ViewContext.ViewData["ActiveTab"];
-			if (Activate == viewActiveTab)
-			{
-				return true;
-			}
+			var viewPaths = ((string?)ViewContext.ViewData["ActiveTab"] ?? "").SplitWithEmpty("/");
 
-			var tempActiveTab = (string)ViewContext.TempData["ActiveTab"];
-			if (Activate == tempActiveTab)
+			// If length of the name is 2, assume it is the language prefix and use the next part of the path for tab matching
+			var viewActiveTab = viewPaths.Length > 1 && viewPaths[0].Length == 2
+				? viewPaths[1]
+				: viewPaths.FirstOrDefault();
+
+			var tempActiveTab = (string?)ViewContext.TempData["ActiveTab"];
+			if (!string.IsNullOrWhiteSpace(tempActiveTab))
 			{
-				return true;
+				viewActiveTab = tempActiveTab;
 			}
 
 			var page = ViewContext.Page();
@@ -96,6 +97,11 @@ namespace TASVideos.TagHelpers
 
 			// We don't want to activate the wiki menu on every wiki page
 			if (Activate == pageGroup && pageGroup != "Wiki")
+			{
+				return true;
+			}
+
+			if (Activate == viewActiveTab)
 			{
 				return true;
 			}
@@ -108,14 +114,12 @@ namespace TASVideos.TagHelpers
 				case "Admin" when new[] { "Roles", "Users", "Permissions" }.Contains(pageGroup):
 				case "Register" when page == "/Account/Register":
 				case "Login" when page == "/Account/Login":
-					return true;
 				case "Wiki" when new[] { "SandBox", "RecentChanges", "WikiOrphans", "TODO", "System", "DeletedPages" }.Contains(viewActiveTab):
 					return true;
 			}
 
 			// Wiki Razor Pages that are not the general wiki page action
 			if (string.IsNullOrWhiteSpace(viewActiveTab)
-				&& string.IsNullOrWhiteSpace(tempActiveTab)
 				&& Activate == "Wiki" && pageGroup == "Wiki")
 			{
 				return true;

@@ -25,7 +25,8 @@ namespace TASVideos.Pages.Submissions
 		private readonly IWikiPages _wikiPages;
 		private readonly ExternalMediaPublisher _publisher;
 		private readonly ITASVideosGrue _tasvideosGrue;
-		private readonly IMovieFormatDepcrecator _deprecator;
+		private readonly IMovieFormatDeprecator _deprecator;
+		private readonly ISubmissionService _submissionService;
 
 		public EditModel(
 			ApplicationDbContext db,
@@ -33,7 +34,8 @@ namespace TASVideos.Pages.Submissions
 			IWikiPages wikiPages,
 			ExternalMediaPublisher publisher,
 			ITASVideosGrue tasvideosGrue,
-			IMovieFormatDepcrecator deprecator)
+			IMovieFormatDeprecator deprecator,
+			ISubmissionService submissionService)
 			: base(db)
 		{
 			_parser = parser;
@@ -41,6 +43,7 @@ namespace TASVideos.Pages.Submissions
 			_publisher = publisher;
 			_tasvideosGrue = tasvideosGrue;
 			_deprecator = deprecator;
+			_submissionService = submissionService;
 		}
 
 		[FromRoute]
@@ -113,7 +116,7 @@ namespace TASVideos.Pages.Submissions
 
 			await PopulateDropdowns();
 
-			AvailableStatuses = SubmissionHelper.AvailableStatuses(
+			AvailableStatuses = _submissionService.AvailableStatuses(
 				Submission.Status,
 				User.Permissions(),
 				Submission.CreateTimestamp,
@@ -180,7 +183,7 @@ namespace TASVideos.Pages.Submissions
 				return NotFound();
 			}
 
-			var availableStatus = SubmissionHelper.AvailableStatuses(
+			var availableStatus = _submissionService.AvailableStatuses(
 				subInfo.CurrentStatus,
 				User.Permissions(),
 				subInfo.CreateDate,
@@ -277,6 +280,7 @@ namespace TASVideos.Pages.Submissions
 				Db.SubmissionStatusHistory.Add(history);
 
 				if (Submission.Status != SubmissionStatus.Rejected &&
+					Submission.Status != SubmissionStatus.Cancelled &&
 					submission.Topic!.ForumId == SiteGlobalConstants.GrueFoodForumId)
 				{
 					submission.Topic.ForumId = SiteGlobalConstants.WorkbenchForumId;
@@ -338,7 +342,7 @@ namespace TASVideos.Pages.Submissions
 				await Db.SaveChangesAsync();
 			}
 
-			if (submission.Status == SubmissionStatus.Rejected && statusHasChanged)
+			if ((submission.Status == SubmissionStatus.Rejected || submission.Status == SubmissionStatus.Cancelled) && statusHasChanged)
 			{
 				await _tasvideosGrue.RejectAndMove(submission.Id);
 			}

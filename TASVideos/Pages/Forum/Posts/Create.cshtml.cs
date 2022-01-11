@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using TASVideos.Core.Services;
 using TASVideos.Core.Services.ExternalMediaPublisher;
 using TASVideos.Data;
@@ -19,18 +20,21 @@ namespace TASVideos.Pages.Forum.Posts
 		private readonly ExternalMediaPublisher _publisher;
 		private readonly ApplicationDbContext _db;
 		private readonly ITopicWatcher _topicWatcher;
+		private readonly ILogger<CreateModel> _logger;
 
 		public CreateModel(
 			UserManager userManager,
 			ExternalMediaPublisher publisher,
 			ApplicationDbContext db,
-			ITopicWatcher topicWatcher)
+			ITopicWatcher topicWatcher,
+			ILogger<CreateModel> logger)
 			: base(db, topicWatcher)
 		{
 			_userManager = userManager;
 			_publisher = publisher;
 			_topicWatcher = topicWatcher;
 			_db = db;
+			_logger = logger;
 		}
 
 		[FromRoute]
@@ -138,15 +142,25 @@ namespace TASVideos.Pages.Forum.Posts
 				topic.Forum.Restricted,
 				$"New reply by {user.UserName}{mood}",
 				$"({topic.Forum.ShortName}: {topic.Title}) ({Post.Subject})",
-				$"Forum/p/{id}#{id}",
-				$"{user.UserName}{mood}");
-
-			await _topicWatcher.NotifyNewPost(new TopicNotification(
-				id, topic.Id, topic.Title, user.Id));
+				$"Forum/Posts/{id}#{id}",
+				$"{user.UserName}{mood}",
+				"New Forum Post");
 
 			await _userManager.AssignAutoAssignableRolesByPost(user);
 
-			return BaseRedirect($"/forum/p/{id}#{id}");
+			try
+			{
+				await _topicWatcher.NotifyNewPost(new TopicNotification(
+					id, topic.Id, topic.Title, user.Id));
+			}
+			catch
+			{
+				// emails are currently somewhat unstable
+				// we want to continue the request even if the email fails, so eat the exception
+				_logger.LogWarning("Email notification failed on new reply creation");
+			}
+
+			return BaseRedirect($"/Forum/Posts/{id}#{id}");
 		}
 	}
 }

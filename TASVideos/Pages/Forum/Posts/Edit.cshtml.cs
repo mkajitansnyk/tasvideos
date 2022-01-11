@@ -137,11 +137,12 @@ namespace TASVideos.Pages.Forum.Posts
 					forumPost.Topic!.Forum!.Restricted,
 					$"Post edited by {User.Name()} ({forumPost.Topic.Forum.ShortName}: {forumPost.Topic.Title})",
 					"",
-					$"Forum/p/{Id}#{Id}",
-					User.Name());
+					$"Forum/Posts/{Id}#{Id}",
+					User.Name(),
+					$"Forum Post Edited by {User.Name()}");
 			}
 
-			return BaseRedirect($"/forum/p/{Id}#{Id}");
+			return BaseRedirect($"/Forum/Posts/{Id}#{Id}");
 		}
 
 		public async Task<IActionResult> OnPostDelete()
@@ -186,14 +187,17 @@ namespace TASVideos.Pages.Forum.Posts
 			}
 
 			var result = await ConcurrentSave(_db, $"Post {Id} deleted", $"Unable to delete post {Id}");
+
 			if (result)
 			{
+				var announcement = $"Post DELETED by {User.Name()} ({post.Topic!.Forum!.ShortName}: {post.Topic.Title})";
 				await _publisher.SendForum(
-					post.Topic!.Forum!.Restricted,
-					$"Post DELETED by {User.Name()} ({post.Topic.Forum.ShortName}: {post.Topic.Title})",
+					post.Topic.Forum.Restricted,
+					announcement,
 					"",
 					$"Forum/Topics/{post.Topic.Id}",
-					User.Name());
+					User.Name(),
+					announcement);
 			}
 
 			return topicDeleted

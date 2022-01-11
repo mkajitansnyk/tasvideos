@@ -80,5 +80,7 @@ namespace TASVideos.Api.Requests
 		IEnumerable<int> IPublicationTokens.MovieIds => Array.Empty<int>();
 		IEnumerable<int> IPublicationTokens.Games => GameIds.CsvToInts();
 		IEnumerable<int> IPublicationTokens.GameGroups => GameGroupIds.CsvToInts();
+		string IPublicationTokens.SortBy => "";
+		int? IPublicationTokens.Limit => null;
 	}
 }

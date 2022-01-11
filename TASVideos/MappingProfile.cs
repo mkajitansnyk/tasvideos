@@ -1,6 +1,5 @@
 ﻿using System.Linq;
 using AutoMapper;
-
 using TASVideos.Api.Responses;
 using TASVideos.Data.Entity;
 using TASVideos.Data.Entity.Forum;
@@ -71,6 +70,7 @@ namespace TASVideos
 
 			CreateMap<UserFile, UserFileModel>()
 				.ForMember(dest => dest.Author, opt => opt.MapFrom(src => src.Author!.UserName))
+				.ForMember(dest => dest.AuthorUserFilesCount, opt => opt.MapFrom(src => src.Author!.UserFiles.Where(uf => !uf.Hidden).Count()))
 				.ForMember(dest => dest.FileSizeUncompressed, opt => opt.MapFrom(src => src.LogicalLength))
 				.ForMember(dest => dest.FileSizeCompressed, opt => opt.MapFrom(src => src.PhysicalLength))
 				.ForMember(dest => dest.GameId, opt => opt.MapFrom(src => src.Game != null ? src.Game.Id : (int?)null))
@@ -172,6 +172,12 @@ namespace TASVideos
 				.ForMember(dest => dest.Tags, opt => opt.MapFrom(src => src.PublicationTags.Select(a => a.Tag!.Code).ToList()))
 				.ForMember(dest => dest.Flags, opt => opt.MapFrom(src => src.PublicationFlags
 					.Select(a => a.Flag!.Token)
+					.ToList()))
+				.ForMember(dest => dest.Urls, opt => opt.MapFrom(src => src.PublicationUrls
+					.Select(u => u.Url)
+					.ToList()))
+				.ForMember(dest => dest.FilePaths, opt => opt.MapFrom(src => src.Files
+					.Select(u => u.Path)
 					.ToList()));
 
 			CreateMap<Submission, SubmissionsResponse>()

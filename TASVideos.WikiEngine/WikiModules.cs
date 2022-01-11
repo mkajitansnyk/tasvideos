@@ -32,7 +32,9 @@ namespace TASVideos.WikiEngine
 		public const string MoviesList = "movieslist";
 		public const string MovieStatistics = "moviestatistics";
 		public const string MovieMaintenanceLog = "moviemaintlog";
-		public const string NoGameName = "nogamename";
+		public const string NoEmulator = "noemulator";
+		public const string NoGameName = "nogame";
+		public const string NoRom = "norom";
 		public const string PlatformAuthorList = "platformtaserlists";
 		public const string PlatformFramerates = "platformframerates";
 		public const string PlayerPointsTable = "playerpointstable";

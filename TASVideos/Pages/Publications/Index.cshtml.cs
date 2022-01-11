@@ -44,12 +44,24 @@ namespace TASVideos.Pages.Publications
 
 			var tokens = Query.ToTokens();
 
+			var limitStr = tokens
+					.Where(t => t.StartsWith("limit"))
+					.Select(t => t.Replace("limit", ""))
+					.FirstOrDefault();
+			int? limit = null;
+			if (int.TryParse(limitStr, out int l))
+			{
+				limit = l;
+			}
+
 			var searchModel = new PublicationSearchModel
 			{
 				Classes = tokenLookup.Classes.Where(t => tokens.Contains(t)),
 				SystemCodes = tokenLookup.SystemCodes.Where(s => tokens.Contains(s)),
 				ShowObsoleted = tokens.Contains("obs"),
 				OnlyObsoleted = tokens.Contains("obsonly"),
+				SortBy = tokens.Where(t => t.StartsWith("sort")).Select(t => t.Replace("sort", "")).FirstOrDefault() ?? "",
+				Limit = limit,
 				Years = tokenLookup.Years.Where(y => tokens.Contains("y" + y)),
 				Tags = tokenLookup.Tags.Where(t => tokens.Contains(t)),
 				Genres = tokenLookup.Genres.Where(g => tokens.Contains(g)),
@@ -74,10 +86,8 @@ namespace TASVideos.Pages.Publications
 
 			Movies = await _mapper.ProjectTo<PublicationDisplayModel>(
 				_db.Publications
-					.OrderBy(p => p.System!.Code)
-					.ThenBy(p => p.Game!.DisplayName)
 					.FilterByTokens(searchModel))
-				.ToListAsync();
+					.ToListAsync();
 
 			var ratings = (await _points.PublicationRatings(Movies.Select(m => m.Id)))
 				.ToDictionary(tkey => tkey.Key, tvalue => tvalue.Value.Overall);

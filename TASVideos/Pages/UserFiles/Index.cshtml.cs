@@ -47,7 +47,7 @@ namespace TASVideos.Pages.UserFiles
 						.Take(10)
 					.ToListAsync(),
 				GamesWithMovies = await _db.Games
-					.Where(g => g.UserFiles.Any())
+					.Where(g => g.UserFiles.Any(uf => !uf.Hidden))
 					.OrderBy(g => g.System!.Code)
 					.ThenBy(g => g.DisplayName)
 					.Select(g => new UserFileIndexModel.GameWithMovie
@@ -97,6 +97,7 @@ namespace TASVideos.Pages.UserFiles
 
 					await _db.SaveChangesAsync();
 					await _publisher.SendUserFile(
+						userFile.Hidden,
 						$"New comment by {User.Name()} on ({userFile.Title} (WIP))",
 						$"UserFiles/Info/{fileId}",
 						comment,
@@ -124,6 +125,7 @@ namespace TASVideos.Pages.UserFiles
 					if (result)
 					{
 						await _publisher.SendUserFile(
+							fileComment.UserFile!.Hidden,
 							$"Comment edited by {User.Name()} on ({fileComment.UserFile!.Title} (WIP))",
 							$"UserFiles/Info/{fileComment.UserFile.Id}",
 							comment,
@@ -151,6 +153,7 @@ namespace TASVideos.Pages.UserFiles
 					if (result)
 					{
 						await _publisher.SendUserFile(
+							fileComment.UserFile!.Hidden,
 							$"Comment by {fileComment.User!.UserName} on ({fileComment.UserFile!.Title} (WIP)) deleted by {User.Name()}",
 							$"UserFiles/Info/{fileComment.UserFile.Id}",
 							"",

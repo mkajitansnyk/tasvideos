@@ -95,62 +95,93 @@ namespace TASVideos.Pages.Publications
 				return Page();
 			}
 
-			var publication = await _db.Publications.SingleOrDefaultAsync(s => s.Id == Id);
+			var publication = await _db.Publications
+				.Include(p => p.System)
+				.Include(p => p.SystemFrameRate)
+				.Include(p => p.Game)
+				.Include(p => p.Rom)
+				.Include(p => p.Authors)
+				.ThenInclude(pa => pa.Author)
+				.SingleOrDefaultAsync(s => s.Id == Id);
 			if (publication == null)
 			{
 				return NotFound();
 			}
 
-			var system = await _db.GameSystems.SingleOrDefaultAsync(s => s.Id == Catalog.SystemId);
-			if (system == null)
+			var externalMessages = new List<string>();
+
+			if (publication.SystemId != Catalog.SystemId)
 			{
-				ModelState.AddModelError($"{nameof(Catalog)}.{nameof(Catalog.SystemId)}", $"Unknown System Id: {Catalog.SystemId}");
-			}
-			else
-			{
-				publication.SystemId = Catalog.SystemId;
+				var system = await _db.GameSystems.SingleOrDefaultAsync(s => s.Id == Catalog.SystemId);
+				if (system == null)
+				{
+					ModelState.AddModelError($"{nameof(Catalog)}.{nameof(Catalog.SystemId)}", $"Unknown System Id: {Catalog.SystemId}");
+				}
+				else
+				{
+					externalMessages.Add($"System changed from {publication.System!.Code} to {system.Code}");
+					publication.SystemId = Catalog.SystemId;
+					publication.System = system;
+				}
 			}
 
-			var systemFramerate = await _db.GameSystemFrameRates.SingleOrDefaultAsync(s => s.Id == Catalog.SystemFrameRateId);
-			if (systemFramerate == null)
+			if (publication.SystemFrameRateId != Catalog.SystemFrameRateId)
 			{
-				ModelState.AddModelError($"{nameof(Catalog)}.{nameof(Catalog.SystemFrameRateId)}", $"Unknown System Id: {Catalog.SystemFrameRateId}");
-			}
-			else
-			{
-				publication.SystemFrameRateId = Catalog.SystemFrameRateId;
-			}
-
-			var game = await _db.Games.SingleOrDefaultAsync(s => s.Id == Catalog.GameId);
-			if (game == null)
-			{
-				ModelState.AddModelError($"{nameof(Catalog)}.{nameof(Catalog.GameId)}", $"Unknown System Id: {Catalog.GameId}");
-			}
-			else
-			{
-				publication.GameId = Catalog.GameId;
+				var systemFramerate = await _db.GameSystemFrameRates.SingleOrDefaultAsync(s => s.Id == Catalog.SystemFrameRateId);
+				if (systemFramerate == null)
+				{
+					ModelState.AddModelError($"{nameof(Catalog)}.{nameof(Catalog.SystemFrameRateId)}", $"Unknown System Id: {Catalog.SystemFrameRateId}");
+				}
+				else if (publication.SystemFrameRateId != Catalog.SystemFrameRateId)
+				{
+					externalMessages.Add($"Framerate changed from {publication.SystemFrameRate!.FrameRate} to {systemFramerate.FrameRate}");
+					publication.SystemFrameRateId = Catalog.SystemFrameRateId;
+					publication.SystemFrameRate = systemFramerate;
+				}
 			}
 
-			var rom = await _db.GameRoms.SingleOrDefaultAsync(s => s.Id == Catalog.RomId);
-			if (rom == null)
+			if (publication.GameId != Catalog.GameId)
 			{
-				ModelState.AddModelError($"{nameof(Catalog)}.{nameof(Catalog.RomId)}", $"Unknown System Id: {Catalog.RomId}");
-			}
-			else
-			{
-				publication.RomId = Catalog.RomId;
+				var game = await _db.Games.SingleOrDefaultAsync(s => s.Id == Catalog.GameId);
+				if (game == null)
+				{
+					ModelState.AddModelError($"{nameof(Catalog)}.{nameof(Catalog.GameId)}", $"Unknown System Id: {Catalog.GameId}");
+				}
+				else
+				{
+					externalMessages.Add($"Game changed from {publication.Game!.DisplayName} to {game.DisplayName}");
+					publication.GameId = Catalog.GameId;
+					publication.Game = game;
+				}
 			}
 
-			if (!ModelState.IsValid)
+			if (publication.RomId != Catalog.RomId)
 			{
-				await PopulateCatalogDropDowns(Catalog.GameId, Catalog.SystemId);
-				return Page();
+				var romHash = await _db.GameRoms.SingleOrDefaultAsync(s => s.Id == Catalog.RomId);
+				if (romHash == null)
+				{
+					ModelState.AddModelError($"{nameof(Catalog)}.{nameof(Catalog.RomId)}", $"Unknown System Id: {Catalog.RomId}");
+				}
+				else
+				{
+					externalMessages.Add($"Rom Hash changed from {publication.Rom!.Name} to {romHash.Name}");
+					publication.RomId = Catalog.RomId;
+					publication.Rom = romHash;
+				}
+
+				if (!ModelState.IsValid)
+				{
+					await PopulateCatalogDropDowns(Catalog.GameId, Catalog.SystemId);
+					return Page();
+				}
 			}
+
+			publication.GenerateTitle();
 
 			var result = await ConcurrentSave(_db, $"{Id}M catalog updated", $"Unable to save {Id}M catalog");
 			if (result)
 			{
-				await _publisher.SendPublicationEdit($"{Id}M Catalogging Info Updated", $"{Id}M", User.Name());
+				await _publisher.SendPublicationEdit($"{Id}M Catalogging Info Updated: {string.Join(", ", externalMessages)}", $"{Id}M", User.Name());
 			}
 
 			return RedirectToPage("View", new { Id });
