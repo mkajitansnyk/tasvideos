@@ -2,8 +2,6 @@
 using System.Linq;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
-
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Hosting;
 
 namespace TASVideos.Core.Services.Email
@@ -12,15 +10,16 @@ namespace TASVideos.Core.Services.Email
 	{
 		Task ResetPassword(string recipient, string link);
 		Task EmailConfirmation(string recipient, string link);
+		Task PasswordResetConfirmation(string recipient, string resetLink);
 		Task TopicReplyNotification(IEnumerable<string> recipients, TopicReplyNotificationTemplate template);
 	}
 
 	internal class EmailService : IEmailService
 	{
-		private readonly IWebHostEnvironment _env;
+		private readonly IHostEnvironment _env;
 		private readonly IEmailSender _emailSender;
 
-		public EmailService(IWebHostEnvironment env, IEmailSender emailSender)
+		public EmailService(IHostEnvironment env, IEmailSender emailSender)
 		{
 			_env = env;
 			_emailSender = emailSender;
@@ -48,6 +47,17 @@ namespace TASVideos.Core.Services.Email
 			});
 		}
 
+		public async Task PasswordResetConfirmation(string recipient, string resetLink)
+		{
+			await _emailSender.SendEmail(new SingleEmail
+			{
+				Recipient = recipient,
+				Subject = "TASVideos - Your Password Was Changed",
+				Message = $"This email is to inform you that your TASVideos user account password was changed. If you have received this message in error, you can reset your password and reclaim your account with this <a href='{HtmlEncoder.Default.Encode(resetLink)}'>link</a>",
+				ContainsHtml = true
+			});
+		}
+
 		public async Task TopicReplyNotification(IEnumerable<string> recipients, TopicReplyNotificationTemplate template)
 		{
 			var recipientsList = recipients.ToList();
@@ -67,7 +77,7 @@ namespace TASVideos.Core.Services.Email
 
 You are receiving this email because you are watching the topic, ""{template.TopicTitle}"" at {siteName}. This topic has received a reply since your last visit. You can use the following link to view the replies made, no more notifications will be sent until you visit the topic.
 
-{template.BaseUrl}/Forum/Posts/{template.PostId}#{template.PostId}
+{template.BaseUrl}/Forum/Posts/{template.PostId}
 
 If you no longer wish to watch this topic you can either click the ""Stop watching this topic link"" found at the top of the topic above, or by clicking the following link:
 

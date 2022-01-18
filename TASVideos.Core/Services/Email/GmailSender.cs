@@ -1,8 +1,9 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Linq;
+using System.Threading.Tasks;
 using MailKit.Net.Smtp;
 using MailKit.Security;
 using MimeKit;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using TASVideos.Core.Services.Youtube;
@@ -15,12 +16,12 @@ namespace TASVideos.Core.Services.Email
 	/// </summary>
 	internal class GmailSender : IEmailSender
 	{
-		private readonly IWebHostEnvironment _env;
+		private readonly IHostEnvironment _env;
 		private readonly AppSettings _settings;
 		private readonly ILogger<GmailSender> _logger;
 		private readonly IGoogleAuthService _googleAuthService;
 
-		public GmailSender(IWebHostEnvironment env,
+		public GmailSender(IHostEnvironment env,
 			AppSettings settings,
 			ILogger<GmailSender> logger,
 			IGoogleAuthService googleAuthService)
@@ -41,27 +42,47 @@ namespace TASVideos.Core.Services.Email
 
 			var token = await _googleAuthService.GetGmailAccessToken();
 
-			using var client = new SmtpClient();
-			await client.ConnectAsync("smtp.gmail.com", 587, SecureSocketOptions.StartTls);
+			if (string.IsNullOrWhiteSpace(token))
+			{
+				_logger.LogError("Unable to acquire get gmail token, skipping email: subject: {0} message: {1}", email.Subject, email.Message);
+				return;
+			}
 
-			// use the access token
-			var oauth2 = new SaslMechanismOAuth2(_settings.Gmail.From, token);
-			await client.AuthenticateAsync(oauth2);
+			try
+			{
+				using var client = new SmtpClient();
+				await client.ConnectAsync("smtp.gmail.com", 587, SecureSocketOptions.StartTls);
 
-			var message = BccList(email);
-			await client.SendAsync(message);
-			await client.DisconnectAsync(true);
+				// use the access token
+				var oauth2 = new SaslMechanismOAuth2(_settings.Gmail.From, token);
+				await client.AuthenticateAsync(oauth2);
+				var message = BccList(email);
+				await client.SendAsync(message);
+				await client.DisconnectAsync(true);
+			}
+			catch (Exception ex)
+			{
+				_logger.LogError("Unable to authenticate email, skipping email: subject: {0} message: {1} exception: {2}", email.Subject, email.Message, ex);
+			}
 		}
 
 		private MimeMessage BccList(IEmail email)
 		{
+			var recipients = email.Recipients.ToList();
 			var from = _env.IsProduction() ? "noreply" : $"TASVideos {_env.EnvironmentName} environment noreply";
 			var message = new MimeMessage();
 			message.From.Add(new MailboxAddress(from, _settings.Gmail.From));
-			
-			foreach (var recipient in email.Recipients)
+
+			if (recipients.Count == 1)
 			{
-				message.Bcc.Add(new MailboxAddress(recipient, recipient));
+				message.To.Add(new MailboxAddress(recipients[0], recipients[0]));
+			}
+			else
+			{
+				foreach (var recipient in email.Recipients)
+				{
+					message.Bcc.Add(new MailboxAddress(recipient, recipient));
+				}
 			}
 
 			var bodyBuilder = new BodyBuilder();

@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.Extensions.Hosting;
@@ -21,7 +20,7 @@ namespace TASVideos.Extensions
 				});
 		}
 
-		public static IApplicationBuilder UseExceptionHandlers(this IApplicationBuilder app, IWebHostEnvironment env)
+		public static IApplicationBuilder UseExceptionHandlers(this IApplicationBuilder app, IHostEnvironment env)
 		{
 			if (env.IsDevelopment())
 			{
@@ -32,7 +31,11 @@ namespace TASVideos.Extensions
 				app.UseExceptionHandler("/Error");
 			}
 
-			return app.UseMiddleware(typeof(ErrorHandlingMiddleware));
+			// TODO: we want to use some middle ware so we can dynamically decide to return json for the API
+			// However, registering this in combination with the pages above causes a request to happen a second time
+			// when there is is an unhandled exception, which is very bad
+			return app;
+				////.UseMiddleware(typeof(ErrorHandlingMiddleware));
 		}
 
 		public static IApplicationBuilder UseGzipCompression(this IApplicationBuilder app, AppSettings settings)
@@ -52,13 +55,8 @@ namespace TASVideos.Extensions
 			return app.UseStaticFiles(new StaticFileOptions { ContentTypeProvider = provider });
 		}
 
-		public static IApplicationBuilder UseMvcWithOptions(this IApplicationBuilder app)
+		public static IApplicationBuilder UseMvcWithOptions(this IApplicationBuilder app, IHostEnvironment env)
 		{
-			// Note: out of the box, this middleware will set cache-control
-			// public only when user is logged out, else no-cache
-			// Which is precisely the behavior we want
-			app.UseResponseCaching();
-
 			app.Use(async (context, next) =>
 			{
 				context.Response.Headers["X-Xss-Protection"] = "1; mode=block";
@@ -66,7 +64,6 @@ namespace TASVideos.Extensions
 				context.Response.Headers["X-Content-Type-Options"] = "nosniff";
 				context.Response.Headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
 				context.Response.Headers["x-powered-by"] = "";
-				context.Response.Headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains";
 				context.Response.Headers["Content-Security-Policy"] = "upgrade-insecure-requests";
 				await next();
 			});
@@ -78,7 +75,12 @@ namespace TASVideos.Extensions
 
 			app.UseRouting();
 			app.UseAuthorization();
-			app.UseHsts();
+
+			if (!env.IsProduction() && !env.IsStaging())
+			{
+				app.UseHsts();
+			}
+
 			return app.UseEndpoints(endpoints =>
 			{
 				endpoints.MapRazorPages();
@@ -88,7 +90,7 @@ namespace TASVideos.Extensions
 
 		public static IApplicationBuilder UseSwaggerUi(
 			this IApplicationBuilder app,
-			IWebHostEnvironment env)
+			IHostEnvironment env)
 		{
 			// Append environment to app name when in non-production environments
 			var appName = "TASVideos";

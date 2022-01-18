@@ -137,9 +137,9 @@ namespace TASVideos.ForumEngine
 			}
 			else
 			{
-				// these were all parsed as ChildTagsIfParam, so we're guaranteed to have a single text child
-				var text = Children.Cast<Text>().Single();
-				w.Text(await transformUrlText(text.Content));
+				// these were all parsed as ChildTagsIfParam, so we're guaranteed to have zero or one text children.
+				var text = Children.Cast<Text>().SingleOrDefault()?.Content ?? "";
+				w.Text(await transformUrlText(text));
 			}
 
 			w.CloseTag("a");
@@ -287,7 +287,7 @@ namespace TASVideos.ForumEngine
 					await WriteHref(w, h, s => "/Forum/Topics/" + s, async s => "Thread #" + s);
 					break;
 				case "post":
-					await WriteHref(w, h, s => "/Forum/Posts/" + s + "#" + s, async s => "Post #" + s);
+					await WriteHref(w, h, s => "/Forum/Posts/" + s, async s => "Post #" + s);
 					break;
 				case "movie":
 					await WriteHref(

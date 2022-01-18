@@ -17,7 +17,7 @@
 		<meta property="og:site_name" content="TASVideos" />
 		<meta property="og:title" content="@($"Forum Reply by {Model.HighlightedPost.PosterName}")" />
 		<meta property="og:description" content="@description" />
-		<meta property="og:url" content="@($"{HttpContext.Request.ToBaseUrl()}/Forum/Posts/{Model.HighlightedPost.Id}#{Model.HighlightedPost.Id}")" />
+		<meta property="og:url" content="@($"{HttpContext.Request.ToBaseUrl()}/Forum/Posts/{Model.HighlightedPost.Id}")" />
 		<meta property="og:image" content="@Model.HighlightedPost.GetCurrentAvatar()" />
 	}
 } else
@@ -105,9 +105,11 @@
 				<sub-link class="col-auto btn btn-secondary btn-sm" id="@SubmissionHelper.SubmissionId(Model.WikiPage.PageName)"><i class="fa fa-info-circle"></i> Full Submission Page</sub-link>
 			</row>
 		</cardheader>
-		<cardbody style="max-height: 600px; overflow-y: scroll">
-			<wiki-markup markup="@Model.WikiPage.Markup" page-data="Model.WikiPage"></wiki-markup>
-		</cardbody>
+		<show-more max-height="38rem">
+			<cardbody>
+				<wiki-markup markup="@Model.WikiPage.Markup" page-data="Model.WikiPage"></wiki-markup>
+			</cardbody>
+		</show-more>
 	</card>
 }
 

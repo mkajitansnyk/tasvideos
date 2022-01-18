@@ -4,11 +4,9 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using AspNetCore.ReCaptcha;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using TASVideos.Core.Services;
 using TASVideos.Core.Services.Email;
 using TASVideos.Core.Services.ExternalMediaPublisher;
@@ -28,9 +26,8 @@ namespace TASVideos.Pages.Account
 		private readonly IEmailService _emailService;
 		private readonly ExternalMediaPublisher _publisher;
 		private readonly IReCaptchaService _reCaptchaService;
-		private readonly IWebHostEnvironment _env;
+		private readonly IHostEnvironment _env;
 		private readonly IUserMaintenanceLogger _userMaintenanceLogger;
-		private readonly ILogger<RegisterModel> _logger;
 
 		public RegisterModel(
 			ApplicationDbContext db,
@@ -39,9 +36,8 @@ namespace TASVideos.Pages.Account
 			IEmailService emailService,
 			ExternalMediaPublisher publisher,
 			IReCaptchaService reCaptchaService,
-			IWebHostEnvironment env,
-			IUserMaintenanceLogger userMaintenanceLogger,
-			ILogger<RegisterModel> logger)
+			IHostEnvironment env,
+			IUserMaintenanceLogger userMaintenanceLogger)
 		{
 			_db = db;
 			_userManager = userManager;
@@ -51,7 +47,6 @@ namespace TASVideos.Pages.Account
 			_reCaptchaService = reCaptchaService;
 			_env = env;
 			_userMaintenanceLogger = userMaintenanceLogger;
-			_logger = logger;
 		}
 
 		[BindProperty]
@@ -143,26 +138,11 @@ namespace TASVideos.Pages.Account
 					await _signInManager.SignInAsync(user, isPersistent: false);
 					await _publisher.SendUserManagement($"New User joined! {user.UserName}", "", $"Users/Profile/{user.UserName}", user.UserName);
 					await _userMaintenanceLogger.Log(user.Id, $"New registration from {IpAddress}");
+					await _emailService.EmailConfirmation(Email, callbackUrl);
 
-					try
-					{
-						await _emailService.EmailConfirmation(Email, callbackUrl);
-					}
-					catch
-					{
-						// emails are currently somewhat unstable
-						// TODO: this should never fail, but it does, at least notify the user about the email problem somehow
-						_logger.LogWarning("Email confirmation sending failed on account creation");
-					}
-
-					if (_userManager.Options.SignIn.RequireConfirmedEmail)
-					{
-						return RedirectToPage("EmailConfirmationSent");
-					}
-					else
-					{
-						return BaseReturnUrlRedirect();
-					}
+					return _userManager.Options.SignIn.RequireConfirmedEmail
+						? RedirectToPage("EmailConfirmationSent")
+						: BaseReturnUrlRedirect();
 				}
 
 				AddErrors(result);

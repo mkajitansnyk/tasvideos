@@ -269,6 +269,7 @@ namespace TASVideos.Pages.Publications
 
 				await _wikiPages.Add(revision);
 				publication.WikiContentId = revision.Id;
+				publication.WikiContent = revision;
 				externalMessages.Add("Description updated");
 			}
 

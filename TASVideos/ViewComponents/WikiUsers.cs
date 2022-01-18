@@ -1,9 +1,7 @@
 ﻿using System.Linq;
 using System.Threading.Tasks;
-
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-
 using TASVideos.Data;
 using TASVideos.Data.Entity;
 using TASVideos.WikiEngine;
@@ -20,12 +18,10 @@ namespace TASVideos.ViewComponents
 			_db = db;
 		}
 
-		public async Task<IViewComponentResult> InvokeAsync(string? roles)
+		public async Task<IViewComponentResult> InvokeAsync(string? role)
 		{
-			var role = TranslateLegacyName(roles ?? "");
-
 			var model = await _db.Users
-				.ThatHaveRole(role)
+				.ThatHaveRole(role ?? "")
 				.Select(u => new WikiUserEntry
 				{
 					UserName = u.UserName,
@@ -35,19 +31,6 @@ namespace TASVideos.ViewComponents
 				.ToListAsync();
 
 			return View(model);
-		}
-
-		private static string TranslateLegacyName(string role)
-		{
-			// Translate legacy names for roles into modern ones
-			return role switch
-			{
-				"admin" => "Site Admin",
-				"adminassistant" => "Admin Assistant",
-				"seniorjudge" => "Senior Judge",
-				"seniorpublisher" => "Senior Publisher",
-				_ => role
-			};
 		}
 	}
 }

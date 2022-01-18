@@ -1,7 +1,5 @@
 ﻿using System.Text;
 using System.Threading.Tasks;
-
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Hosting;
 
@@ -10,12 +8,12 @@ namespace TASVideos.Middleware
 	public class RobotHandlingMiddleware
 	{
 		// ReSharper disable once NotAccessedField.Local
-		private readonly IWebHostEnvironment _env;
+		private readonly IHostEnvironment _env;
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="RobotHandlingMiddleware"/> class.
 		/// </summary>
-		public RobotHandlingMiddleware(RequestDelegate request, IWebHostEnvironment env)
+		public RobotHandlingMiddleware(RequestDelegate request, IHostEnvironment env)
 		{
 			_env = env;
 		}
@@ -34,14 +32,14 @@ Disallow: /submissions/
 Disallow: /media/
 Disallow: /MovieMaintenanceLog
 Disallow: /UserMaintenanceLog
+Disallow: /InternalSystem/
 
 User-agent: Mediapartners-Google
 Allow: /forum/
 
 User-agent: Fasterfox
 Disallow: /
-
-Sitemap: http://tasvideos.org/sitemap.xml");
+");
 			}
 			else
 			{

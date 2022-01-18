@@ -1,4 +1,5 @@
-﻿using System.ComponentModel;
+﻿using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
@@ -50,6 +51,8 @@ namespace TASVideos.Pages.Forum.Posts
 		[DisplayName("Watch Topic for Replies")]
 		public bool WatchTopic { get; set; }
 
+		public IEnumerable<MiniPostModel> PreviousPosts { get; set; } = new List<MiniPostModel>();
+
 		public async Task<IActionResult> OnGet()
 		{
 			var seeRestricted = User.Has(PermissionTo.SeeRestrictedForums);
@@ -84,6 +87,22 @@ namespace TASVideos.Pages.Forum.Posts
 			}
 
 			WatchTopic = await _topicWatcher.IsWatchingTopic(TopicId, User.GetUserId());
+
+			PreviousPosts = await _db.ForumPosts
+				.ForTopic(TopicId)
+				.Select(fp => new MiniPostModel
+				{
+					CreateTimestamp = fp.CreateTimestamp,
+					PosterName = fp.Poster!.UserName,
+					PosterPronouns = fp.Poster.PreferredPronouns,
+					Text = fp.Text,
+					EnableBbCode = fp.EnableBbCode,
+					EnableHtml = fp.EnableHtml
+				})
+				.OrderByDescending(fp => fp.CreateTimestamp)
+				.Take(10)
+				.Reverse()
+				.ToListAsync();
 
 			return Page();
 		}
@@ -140,13 +159,13 @@ namespace TASVideos.Pages.Forum.Posts
 			var mood = Post.Mood != ForumPostMood.Normal ? $" Mood: ({Post.Mood})" : "";
 			await _publisher.SendForum(
 				topic.Forum.Restricted,
-				$"New reply by {user.UserName}{mood}",
+				"New reply",
 				$"({topic.Forum.ShortName}: {topic.Title}) ({Post.Subject})",
-				$"Forum/Posts/{id}#{id}",
+				$"Forum/Posts/{id}",
 				$"{user.UserName}{mood}",
 				"New Forum Post");
 
-			await _userManager.AssignAutoAssignableRolesByPost(user);
+			await _userManager.AssignAutoAssignableRolesByPost(user.Id);
 
 			try
 			{
@@ -160,7 +179,7 @@ namespace TASVideos.Pages.Forum.Posts
 				_logger.LogWarning("Email notification failed on new reply creation");
 			}
 
-			return BaseRedirect($"/Forum/Posts/{id}#{id}");
+			return BaseRedirect($"/Forum/Posts/{id}");
 		}
 	}
 }

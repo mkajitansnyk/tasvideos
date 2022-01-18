@@ -4,6 +4,8 @@ using System.Globalization;
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using TASVideos.Core.HttpClientExtensions;
 using TASVideos.Core.Services.Youtube.Dtos;
 using TASVideos.Core.Settings;
@@ -31,18 +33,21 @@ namespace TASVideos.Core.Services.Youtube
 		private readonly IGoogleAuthService _googleAuthService;
 		private readonly IWikiToTextRenderer _textRenderer;
 		private readonly AppSettings _settings;
+		private readonly ILogger<YouTubeSync> _logger;
 
 		public YouTubeSync(
 			IHttpClientFactory httpClientFactory,
 			IGoogleAuthService googleAuthService,
 			IWikiToTextRenderer textRenderer,
-			AppSettings settings)
+			AppSettings settings,
+			ILogger<YouTubeSync> logger)
 		{
 			_client = httpClientFactory.CreateClient(HttpClients.Youtube)
 				?? throw new InvalidOperationException($"Unable to initalize {HttpClients.Youtube} client");
 			_googleAuthService = googleAuthService;
 			_textRenderer = textRenderer;
 			_settings = settings;
+			_logger = logger;
 		}
 
 		public async Task SyncYouTubeVideo(YoutubeVideo video)
@@ -75,7 +80,7 @@ namespace TASVideos.Core.Services.Youtube
 			descriptionBase += $"\nTAS originally published on {video.PublicationDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}\n\n";
 			var renderedDescription = await _textRenderer.RenderWikiForYoutube(video.WikiPage);
 
-			var requestBody = new VideoUpdateRequest
+			var updateRequest = new VideoUpdateRequest
 			{
 				VideoId = videoId,
 				Snippet = new ()
@@ -85,10 +90,18 @@ namespace TASVideos.Core.Services.Youtube
 					CategoryId = videoDetails.CategoryId,
 					Tags = BaseTags.Concat(video.Tags).ToList()
 				}
-			}.ToStringContent();
+			};
 
-			var response = await _client.PutAsync("videos?part=status,snippet", requestBody);
-			response.EnsureSuccessStatusCode();
+			var response = await _client.PutAsync("videos?part=status,snippet", updateRequest.ToStringContent());
+			if (!response.IsSuccessStatusCode)
+			{
+				_logger.LogError($"[{DateTime.Now}] An error occurred syncing data to Youtube. Request: {JsonConvert.SerializeObject(updateRequest)}");
+				_logger.LogError(await response.Content.ReadAsStringAsync());
+			}
+			else
+			{
+				_logger.LogError($"(Not an error) Successful sync to Youtube. Request: {JsonConvert.SerializeObject(updateRequest)}");
+			}
 		}
 
 		public async Task<IEnumerable<YoutubeVideoResponseItem>> GetPublicInfo(IEnumerable<string> videoIds)
@@ -149,17 +162,27 @@ namespace TASVideos.Core.Services.Youtube
 			}
 
 			await SetAccessToken();
-			var requestBody = new VideoUpdateRequest
+
+			var unlistRequest = new UnlistRequest
 			{
 				VideoId = videoId,
 				Status = new ()
 				{
 					PrivacyStatus = "unlisted"
 				}
-			}.ToStringContent();
+			};
 
-			var response = await _client.PutAsync("videos?part=status", requestBody);
-			response.EnsureSuccessStatusCode();
+			var response = await _client.PutAsync("videos?part=status", unlistRequest.ToStringContent());
+
+			if (!response.IsSuccessStatusCode)
+			{
+				_logger.LogError($"{DateTime.Now} An error occurred sending a request to YouTube. Request: {JsonConvert.SerializeObject(unlistRequest)}");
+				_logger.LogError($"Response: {await response.Content.ReadAsStringAsync()}");
+			}
+			else
+			{
+				_logger.LogError($"(Not an error) Successfully unlisted video. Request: {JsonConvert.SerializeObject(unlistRequest)}");
+			}
 		}
 
 		public bool IsYoutubeUrl(string? url)
@@ -223,13 +246,19 @@ namespace TASVideos.Core.Services.Youtube
 			// fileDetails require authorization to see, so this serves as a way to determine access
 			// there may be a more intended strategy to use
 			var result = await _client.GetAsync($"videos?id={videoId}&part=snippet,fileDetails");
-			if (result.IsSuccessStatusCode)
+			if (!result.IsSuccessStatusCode)
 			{
-				var getResponse = await result.ReadAsync<YoutubeGetResponse>();
-				return getResponse.Items.First().Snippet;
+				_logger.LogError($"{DateTime.Now} Unable to request data for video {videoId} from YouTube");
+				_logger.LogError($"Response: {await result.Content.ReadAsStringAsync()}");
+				return null;
+			}
+			else
+			{
+				_logger.LogError($"(Not an error) Requesting data for video {videoId} successful.");
 			}
 
-			return null;
+			var getResponse = await result.ReadAsync<YoutubeGetResponse>();
+			return getResponse.Items.First().Snippet;
 		}
 	}
 

@@ -1,4 +1,5 @@
-﻿using System.ComponentModel;
+﻿using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
@@ -42,6 +43,7 @@ namespace TASVideos.Pages.Forum.Posts
 		[BindProperty]
 		[DisplayName("Minor Edit")]
 		public bool MinorEdit { get; set; } = false;
+		public IEnumerable<MiniPostModel> PreviousPosts { get; set; } = new List<MiniPostModel>();
 
 		public async Task<IActionResult> OnGet()
 		{
@@ -82,6 +84,23 @@ namespace TASVideos.Pages.Forum.Posts
 			{
 				return AccessDenied();
 			}
+
+			PreviousPosts = await _db.ForumPosts
+				.ForTopic(Post.TopicId)
+				.Where(fp => fp.CreateTimestamp < Post.CreateTimestamp)
+				.Select(fp => new MiniPostModel
+				{
+					CreateTimestamp = fp.CreateTimestamp,
+					PosterName = fp.Poster!.UserName,
+					PosterPronouns = fp.Poster.PreferredPronouns,
+					Text = fp.Text,
+					EnableBbCode = fp.EnableBbCode,
+					EnableHtml = fp.EnableHtml
+				})
+				.OrderByDescending(fp => fp.CreateTimestamp)
+				.Take(10)
+				.Reverse()
+				.ToListAsync();
 
 			return Page();
 		}
@@ -135,14 +154,14 @@ namespace TASVideos.Pages.Forum.Posts
 			{
 				await _publisher.SendForum(
 					forumPost.Topic!.Forum!.Restricted,
-					$"Post edited by {User.Name()} ({forumPost.Topic.Forum.ShortName}: {forumPost.Topic.Title})",
+					$"Post edited ({forumPost.Topic.Forum.ShortName}: {forumPost.Topic.Title})",
 					"",
-					$"Forum/Posts/{Id}#{Id}",
+					$"Forum/Posts/{Id}",
 					User.Name(),
-					$"Forum Post Edited by {User.Name()}");
+					"Forum Post Edited");
 			}
 
-			return BaseRedirect($"/Forum/Posts/{Id}#{Id}");
+			return BaseRedirect($"/Forum/Posts/{Id}");
 		}
 
 		public async Task<IActionResult> OnPostDelete()
@@ -190,12 +209,12 @@ namespace TASVideos.Pages.Forum.Posts
 
 			if (result)
 			{
-				var announcement = $"Post DELETED by {User.Name()} ({post.Topic!.Forum!.ShortName}: {post.Topic.Title})";
+				var announcement = $"{(topicDeleted ? "Topic" : "Post")} DELETED ({post.Topic!.Forum!.ShortName}: {post.Topic.Title})";
 				await _publisher.SendForum(
 					post.Topic.Forum.Restricted,
 					announcement,
 					"",
-					$"Forum/Topics/{post.Topic.Id}",
+					topicDeleted ? "" : $"Forum/Topics/{post.Topic.Id}",
 					User.Name(),
 					announcement);
 			}

@@ -9,6 +9,7 @@
 
 	public static class Durations
 	{
+		public const int ThirtySecondsInSeconds = 30;
 		public const int OneMinuteInSeconds = 60;
 		public const int FiveMinutesInSeconds = 60 * 5;
 		public const int OneDayInSeconds = 60 * 60 * 24;
@@ -52,7 +53,7 @@ The posts before this message apply to the submission, and posts after this mess
 
 		public const string DefaultPublicationText = "''[TODO]: describe this movie here''";
 
-		public const int MaximumMovieSize = 150 * 1024;
+		public const int MaximumMovieSize = 500 * 1024;
 		public const int UserFileStorageLimit = 1000 * 1000 * 50; // 50 MB
 	}
 

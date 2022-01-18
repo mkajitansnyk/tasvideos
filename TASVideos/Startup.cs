@@ -32,7 +32,7 @@ namespace TASVideos
 			services
 				.AddAppSettings(Configuration)
 				.AddRequestLocalization()
-				.AddCookieConfiguration(Environment)
+				.AddCookieConfiguration()
 				.AddGzipCompression(Settings)
 				.AddAutoMapperWithProjections()
 				.AddSwagger(Settings)
@@ -62,7 +62,7 @@ namespace TASVideos
 			});
 		}
 
-		public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+		public void Configure(IApplicationBuilder app, IHostEnvironment env)
 		{
 			app
 				.UseRobots()
@@ -76,7 +76,7 @@ namespace TASVideos
 				.UseAuthentication()
 				.UseSwaggerUi(Environment)
 				.UseLogging()
-				.UseMvcWithOptions();
+				.UseMvcWithOptions(env);
 
 			if (env.IsDevelopment())
 			{
