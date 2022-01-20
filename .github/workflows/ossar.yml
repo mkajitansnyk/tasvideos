@@ -6,10 +6,10 @@ name: OSSAR
 on:
   workflow_dispatch:
   push:
-    branches: [ masib ]
+    branches: [ masin ]
   pull_request:
     # The branches below must be a subset of the branches above
-    branches: [ masib ]
+    branches: [ masin ]
   schedule:
     - cron: '37 0 * * 3'
 
