@@ -4,8 +4,7 @@ on:
   push:
     branches:
       - masin
-  pull_request:
-    types: [opened, synchronize, reopened]
+  pull_request: {}
 jobs:
   sonarcloud:
     name: SonarCloud
