@@ -33,9 +33,7 @@ namespace TASVideos.Pages.Forum.Topics
 			IAwards awards,
 			IPointsService pointsService,
 			ITopicWatcher topicWatcher,
-			IWikiPages wikiPages,
-			IForumService forumService)
-			: base(db, topicWatcher, forumService)
+			IWikiPages wikiPages)
 		{
 			_db = db;
 			_publisher = publisher;
@@ -208,14 +206,16 @@ namespace TASVideos.Pages.Forum.Topics
 				return RedirectToTopic();
 			}
 
-			var selectedOptions = pollOptions.Where(o => ordinal.Contains(o.Ordinal));
+			var selectedOptions = pollOptions
+				.Where(o => ordinal.Contains(o.Ordinal))
+				.ToList();
 
-			if (selectedOptions.Count() == 0)
+			if (!selectedOptions.Any())
 			{
 				return RedirectToTopic();
 			}
 
-			if (!pollOptions.First().Poll!.MultiSelect && selectedOptions.Count() != 1)
+			if (!pollOptions.First().Poll!.MultiSelect && selectedOptions.Count != 1)
 			{
 				ErrorStatusMessage("Poll only allows 1 selection.");
 				return RedirectToTopic();
@@ -289,29 +289,6 @@ namespace TASVideos.Pages.Forum.Topics
 			}
 
 			await _topicWatcher.UnwatchTopic(Id, User.GetUserId());
-			return RedirectToTopic();
-		}
-
-		public async Task<IActionResult> OnPostReset()
-		{
-			var topic = await _db.ForumTopics
-				.Include(t => t.Poll)
-				.ThenInclude(p => p!.PollOptions)
-				.ThenInclude(o => o.Votes)
-				.Where(t => t.Id == Id)
-				.SingleOrDefaultAsync();
-
-			if (topic?.Poll == null)
-			{
-				return NotFound();
-			}
-
-			foreach (var option in topic.Poll.PollOptions)
-			{
-				option.Votes.Clear();
-			}
-
-			await ConcurrentSave(_db, "Poll reset", "Unable to reset poll results");
 			return RedirectToTopic();
 		}
 
