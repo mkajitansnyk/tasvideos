@@ -1,16 +1,16 @@
 ﻿using System;
+using System.Linq;
 using System.Security.Claims;
-using System.Security.Cryptography;
-using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using TASVideos.Core.Extensions;
 using TASVideos.Data;
 using TASVideos.Data.Entity;
-using Microsoft.EntityFrameworkCore;
 
 namespace TASVideos.Core.Services
 {
@@ -41,7 +41,7 @@ namespace TASVideos.Core.Services
 			_userManager = userManager;
 		}
 
-		public async Task<SignInResult> SignInWithLegacySupport(string userName, string password, bool rememberMe = false)
+		public async Task<SignInResult> SignIn(string userName, string password, bool rememberMe = false)
 		{
 			var user = await _db.Users.SingleOrDefaultAsync(u => u.UserName == userName);
 			if (user == null)
@@ -49,25 +49,14 @@ namespace TASVideos.Core.Services
 				return SignInResult.Failed;
 			}
 
-			// If no password, then try to log in with legacy method
-			if (!string.IsNullOrWhiteSpace(user.LegacyPassword))
-			{
-				using var md5 = MD5.Create();
-				var md5Result = md5.ComputeHash(Encoding.ASCII.GetBytes(AddSlashes(password)));
-				string encrypted = BitConverter.ToString(md5Result)
-					.Replace("-", "")
-					.ToLower();
+			var claims = await _userManager.AddUserPermissionsToClaims(user);
+			var canLogIn = claims.Permissions().Contains(PermissionTo.Login);
 
-				if (encrypted == user.LegacyPassword)
-				{
-					user.PasswordHash = _userManager.PasswordHasher.HashPassword(user, password);
-					await _userManager.UpdateSecurityStampAsync(user);
-					user.LegacyPassword = null;
-					await _db.SaveChangesAsync();
-				}
+			if (!canLogIn)
+			{
+				return SignInResult.NotAllowed;
 			}
 
-			await _userManager.AddUserPermissionsToClaims(user);
 			var result = await base.PasswordSignInAsync(
 				userName,
 				password,
@@ -76,22 +65,13 @@ namespace TASVideos.Core.Services
 
 			if (result.Succeeded)
 			{
-				var loggedInUser = await _db.Users.SingleAsync(u => u.UserName == userName);
-				loggedInUser.LastLoggedInTimeStamp = DateTime.UtcNow;
-				await _db.SaveChangesAsync();
+				user.LastLoggedInTimeStamp = DateTime.UtcNow;
+
+				// Note: This runs a save changes so LastLoggedInTimeStamp will get updated too
+				await _userManager.AddUserPermissionsToClaims(user);
 			}
 
 			return result;
-		}
-
-		// Attempts to recreate the addslashes() php method
-		// phpbb2 runs this before passing a database value into the md5() method
-		// https://www.php.net/manual/en/function.addslashes.php
-		internal string AddSlashes(string str)
-		{
-			return str
-				.Replace("\"", "\\\"")
-				.Replace("'", "\\'");
 		}
 
 		public async Task<IdentityResult> AddPassword(ClaimsPrincipal principal, string newPassword)

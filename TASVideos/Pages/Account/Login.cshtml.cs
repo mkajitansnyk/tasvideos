@@ -44,7 +44,7 @@ namespace TASVideos.Pages.Account
 				return Page();
 			}
 
-			var result = await _signInManager.SignInWithLegacySupport(UserName, Password, RememberMe);
+			var result = await _signInManager.SignIn(UserName, Password, RememberMe);
 
 			if (result.Succeeded)
 			{
@@ -54,6 +54,11 @@ namespace TASVideos.Pages.Account
 			if (result.IsLockedOut)
 			{
 				return RedirectToPage("/Account/Lockout");
+			}
+
+			if (result.IsNotAllowed)
+			{
+				return AccessDenied();
 			}
 
 			ModelState.AddModelError(string.Empty, "Invalid login attempt.");

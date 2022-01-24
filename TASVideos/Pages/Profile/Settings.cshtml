@@ -12,6 +12,9 @@
 			<form-group>
 				<label asp-for="Settings.Username"></label>
 				<input asp-for="Settings.Username" class="form-control" disabled />
+				<div class="text-warning">
+					@await Component.RenderWiki("System/NameChanges")
+				</div>
 			</form-group>
 			<form-group>
 				<label asp-for="Settings.Email"></label>
@@ -130,6 +133,7 @@
 		<column md="6">
 			<label asp-for="Settings.MoodAvatar"></label>
 			<input type="text" asp-for="Settings.MoodAvatar" class="form-control" />
+			<a asp-page="/Forum/MoodReport" asp-route-username="@Model.Settings.Username">Check Mood Avatars</a>
 		</column>
 		<column md="6">
 			<small>

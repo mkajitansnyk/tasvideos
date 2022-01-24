@@ -82,7 +82,11 @@ namespace TASVideos.Core.Services
 
 			foreach (var forum in dto.SelectMany(c => c.Forums))
 			{
-				forum.LastPost = latestPostMappings[forum.Id];
+				if (latestPostMappings.TryGetValue(forum.Id, out var lastPost))
+				{
+					forum.LastPost = lastPost;
+
+				}
 			}
 
 			return dto;
@@ -135,7 +139,7 @@ namespace TASVideos.Core.Services
 				PosterId = post.PosterId,
 				IpAddress = post.IpAddress,
 				Subject = post.Subject,
-				Text = post.Text,
+				Text = post.Text.Replace("\r", ""),
 				PosterMood = post.Mood,
 
 				// New posts are always bbcode = true, html = false
