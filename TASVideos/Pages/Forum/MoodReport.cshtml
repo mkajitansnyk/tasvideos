@@ -6,7 +6,7 @@
 		: "Mood avatars";
 }
 <p condition="string.IsNullOrWhiteSpace(Model.UserName)">These are peoples mood avatars</p>
-@foreach (var user in Model.MoodyUsers.Where(m => m.UserName == "adelikat"))
+@foreach (var user in Model.MoodyUsers)
 {
 	<card>
 		<cardheader>
@@ -18,7 +18,7 @@
 				<div class="mood-box border p-2">
 					<strong>@mood.EnumDisplayName()</strong>
 					<br />
-					<img src="@user.MoodAvatarUrl.Replace("$", ((int)mood).ToString())" onerror="imgError(this)" />
+					<img src="@user.MoodAvatarUrl.Replace("$", ((int)mood).ToString())" onerror="imgError(this)" loading="lazy" />
 				</div>
 			}
 		</cardbody>

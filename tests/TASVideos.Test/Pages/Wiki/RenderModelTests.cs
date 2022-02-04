@@ -1,8 +1,6 @@
-﻿using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
 using TASVideos.Core.Services;
 using TASVideos.Data.Entity;
@@ -15,14 +13,13 @@ namespace TASVideos.RazorPages.Tests.Pages.Wiki;
 public class RenderModelTests : BasePageModelTests
 {
 	private readonly Mock<IWikiPages> _mockWikiPages;
-	private readonly TestDbContext _db;
 	private readonly RenderModel _model;
 
 	public RenderModelTests()
 	{
 		_mockWikiPages = new Mock<IWikiPages>();
-		_db = TestDbContext.Create();
-		_model = new RenderModel(_mockWikiPages.Object, _db, NullLogger<RenderModel>.Instance)
+		var db = TestDbContext.Create();
+		_model = new RenderModel(_mockWikiPages.Object, db, NullLogger<RenderModel>.Instance)
 		{
 			PageContext = TestPageContext()
 		};

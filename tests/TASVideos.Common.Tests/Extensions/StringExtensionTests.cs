@@ -1,5 +1,4 @@
-﻿using System.Linq;
-using TASVideos.Extensions;
+﻿using TASVideos.Extensions;
 
 namespace TASVideos.Common.Tests.Extensions;
 
@@ -181,6 +180,7 @@ public class StringExtensionTests
 	[DataRow("\n", null)]
 	[DataRow("Test", "Test")]
 	[DataRow("Test\n", "Test\n")]
+	[TestMethod]
 	public void NullIfWhitespace(string s, string expected)
 	{
 		var actual = s.NullIfWhitespace();

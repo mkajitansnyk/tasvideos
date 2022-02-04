@@ -1,6 +1,4 @@
-﻿using System.Linq;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using TASVideos.Data.Entity;
+﻿using TASVideos.Data.Entity;
 using TASVideos.Pages.Submissions;
 using static TASVideos.Data.Entity.SubmissionStatus;
 
@@ -30,7 +28,7 @@ public class LegacySubListConverterTests
 	{
 		var request = LegacySubListConverter.ToSearchRequest(queryString);
 		Assert.IsNotNull(request);
-		Assert.IsNotNull(request!.StatusFilter);
+		Assert.IsNotNull(request.StatusFilter);
 		var actual = request.StatusFilter.ToList();
 		Assert.AreEqual(expected.Length, actual.Count);
 		foreach (var status in expected)
@@ -50,7 +48,7 @@ public class LegacySubListConverterTests
 	{
 		var request = LegacySubListConverter.ToSearchRequest(queryString);
 		Assert.IsNotNull(request);
-		Assert.IsNotNull(request!.Years);
+		Assert.IsNotNull(request.Years);
 		var actual = request.Years.ToList();
 		Assert.AreEqual(expected.Length, actual.Count);
 		foreach (var year in expected)
