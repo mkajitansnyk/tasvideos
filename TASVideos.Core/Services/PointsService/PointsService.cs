@@ -52,7 +52,7 @@ internal class PointsService : IPointsService
 		}
 
 		var publications = await _db.Publications
-			.Where(p => p.Authors.Select(pa => pa.UserId).Contains(userId))
+			.ForAuthor(userId)
 			.Select(p => new PublicationRatingDto
 			{
 				Id = p.Id,
@@ -60,7 +60,7 @@ internal class PointsService : IPointsService
 				ClassWeight = p.PublicationClass!.Weight,
 				AuthorCount = p.Authors.Count,
 				PublicationRatings = p.PublicationRatings
-					.Select(r => new Rating(r.Type, r.Value))
+					.Select(r => r.Value)
 					.ToList()
 			})
 			.ToListAsync();
@@ -96,7 +96,7 @@ internal class PointsService : IPointsService
 			.ForPublication(id)
 			.ThatAreNotFromAnAuthor()
 			.ThatCanBeUsedToRate()
-			.Select(r => new Rating(r.Type, r.Value))
+			.Select(r => r.Value)
 			.ToListAsync();
 
 		rating = Rate(ratings);
@@ -128,7 +128,7 @@ internal class PointsService : IPointsService
 			var cacheKey = MovieCacheKey(pub.Key);
 			var pubRatings = pub.ToList();
 			var rating = Rate(pubRatings
-				.Select(r => new Rating(r.Type, r.Value))
+				.Select(r => r.Value)
 				.ToList());
 			_cache.Set(cacheKey, rating);
 			ratings.Add(pub.Key, rating);
@@ -139,40 +139,13 @@ internal class PointsService : IPointsService
 
 	private static string MovieCacheKey(int id) => MovieRatingKey + id;
 
-	private static RatingDto Rate(ICollection<Rating> ratings)
+	private static RatingDto Rate(ICollection<double> ratings)
 	{
-		var entRatings = ratings
-			.Where(r => r.Type == PublicationRatingType.Entertainment)
-			.Select(r => r.Value)
-			.ToList();
-
-		var techRatings = ratings
-			.Where(r => r.Type == PublicationRatingType.TechQuality)
-			.Select(r => r.Value)
-			.ToList();
-
-		var rating = new RatingDto
-		{
-			Entertainment = entRatings.Any()
-				? entRatings.Average()
+		return new RatingDto(
+			ratings.Any()
+				? ratings.Average()
 				: null,
-			TechQuality = techRatings.Any()
-				? techRatings.Average()
-				: null,
-			TotalEntertainmentVotes = entRatings.Count,
-			TotalTechQualityVotes = techRatings.Count
-		};
-
-		if (entRatings.Any() || techRatings.Any())
-		{
-			// Entertainment counts 2:1 over Tech
-			rating.Overall = entRatings
-				.Concat(entRatings)
-				.Concat(techRatings)
-				.Average();
-		}
-
-		return rating;
+			ratings.Count);
 	}
 
 	// total ratings / (2 * total publications)
@@ -188,8 +161,7 @@ internal class PointsService : IPointsService
 		double avg = 0;
 		if (totalPublications > 0)
 		{
-			var totalRatings = await _db.PublicationRatings.CountAsync();
-			avg = totalRatings / (double)(2 * totalPublications);
+			avg = await _db.PublicationRatings.CountAsync() / (double)totalPublications;
 		}
 
 		_cache.Set(AverageNumberOfRatingsKey, avg);
@@ -202,8 +174,6 @@ internal class PointsService : IPointsService
 		public bool Obsolete { get; init; }
 		public double ClassWeight { get; init; }
 		public int AuthorCount { get; init; }
-		public ICollection<Rating> PublicationRatings { get; init; } = new List<Rating>();
+		public ICollection<double> PublicationRatings { get; init; } = new List<double>();
 	}
-
-	private record Rating(PublicationRatingType Type, double Value);
 }

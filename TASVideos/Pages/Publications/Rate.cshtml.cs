@@ -40,16 +40,12 @@ public class RateModel : BasePageModel
 		Rating = new PublicationRateModel
 		{
 			Title = publication.Title,
-			TechRating = ratings
-				.SingleOrDefault(r => r.Type == PublicationRatingType.TechQuality)
-				?.Value.ToString(CultureInfo.InvariantCulture),
-			EntertainmentRating = ratings
-				.SingleOrDefault(r => r.Type == PublicationRatingType.Entertainment)
+			Rating = ratings
+				.FirstOrDefault()
 				?.Value.ToString(CultureInfo.InvariantCulture)
 		};
 
-		Rating.TechUnrated = Rating.TechRating == null;
-		Rating.EntertainmentUnrated = Rating.EntertainmentRating == null;
+		Rating.Unrated = Rating.Rating == null;
 
 		return Page();
 	}
@@ -63,26 +59,19 @@ public class RateModel : BasePageModel
 
 		var userId = User.GetUserId();
 
-		var ratings = await _db.PublicationRatings
+		var rating = await _db.PublicationRatings
 			.ForPublication(Id)
 			.ForUser(userId)
-			.ToListAsync();
+			.FirstOrDefaultAsync();
 
-		var tech = ratings
-			.SingleOrDefault(r => r.Type == PublicationRatingType.TechQuality);
-
-		var entertainment = ratings
-			.SingleOrDefault(r => r.Type == PublicationRatingType.Entertainment);
-
-		UpdateRating(tech, Id, userId, PublicationRatingType.TechQuality, PublicationRateModel.RatingString.AsRatingDouble(Rating.TechRating), Rating.TechUnrated);
-		UpdateRating(entertainment, Id, userId, PublicationRatingType.Entertainment, PublicationRateModel.RatingString.AsRatingDouble(Rating.EntertainmentRating), Rating.EntertainmentUnrated);
+		UpdateRating(rating, Id, userId, PublicationRateModel.RatingString.AsRatingDouble(Rating.Rating), Rating.Unrated);
 
 		await _db.SaveChangesAsync();
 
 		return BasePageRedirect("/Ratings/Index", new { Id });
 	}
 
-	private void UpdateRating(PublicationRating? rating, int id, int userId, PublicationRatingType type, double? value, bool remove)
+	private void UpdateRating(PublicationRating? rating, int id, int userId, double? value, bool remove)
 	{
 		if (rating is not null)
 		{
@@ -106,7 +95,7 @@ public class RateModel : BasePageModel
 				{
 					PublicationId = id,
 					UserId = userId,
-					Type = type,
+					Type = PublicationRatingType.Entertainment,
 					Value = Math.Round(value.Value, 1)
 				});
 			}

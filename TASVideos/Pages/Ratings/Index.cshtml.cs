@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using TASVideos.Core.Services;
 using TASVideos.Data;
 using TASVideos.Data.Entity;
 using TASVideos.Pages.Ratings.Models;
@@ -12,14 +11,10 @@ namespace TASVideos.Pages.Ratings;
 public class IndexModel : BasePageModel
 {
 	private readonly ApplicationDbContext _db;
-	private readonly ICacheService _cache;
 
-	public IndexModel(
-		ApplicationDbContext db,
-		ICacheService cache)
+	public IndexModel(ApplicationDbContext db)
 	{
 		_db = db;
-		_cache = cache;
 	}
 
 	[FromRoute]
@@ -34,12 +29,6 @@ public class IndexModel : BasePageModel
 	// TODO: refactor to use pointsService for calculations
 	public async Task<IActionResult> OnGet()
 	{
-		string cacheKey = CacheKeys.MovieRatingKey + Id;
-		if (_cache.TryGetValue(cacheKey, out PublicationRatingsModel rating))
-		{
-			Publication = rating;
-		}
-
 		var publication = await _db.Publications
 			.Include(p => p.PublicationRatings)
 			.ThenInclude(r => r.User)
@@ -54,47 +43,19 @@ public class IndexModel : BasePageModel
 		{
 			PublicationTitle = publication.Title,
 			Ratings = publication.PublicationRatings
-				.GroupBy(
-					key => new { key.PublicationId, key.User!.UserName, key.User.PublicRatings },
-					grp => new { grp.Type, grp.Value })
-				.Select(g => new PublicationRatingsModel.RatingEntry
+				.Select(pr => new PublicationRatingsModel.RatingEntry
 				{
-					UserName = g.Key.UserName,
-					IsPublic = g.Key.PublicRatings,
-					Entertainment = g.FirstOrDefault(v => v.Type == PublicationRatingType.Entertainment)?.Value,
-					TechQuality = g.FirstOrDefault(v => v.Type == PublicationRatingType.TechQuality)?.Value
+					UserName = pr.User!.UserName,
+					IsPublic = pr.User!.PublicRatings,
+					Rating = pr.Value
 				})
 				.ToList()
 		};
 
-		var entertainmentRatings = Publication.Ratings
-			.Where(r => r.Entertainment.HasValue)
-			.Select(r => r.Entertainment!.Value)
-			.ToList();
-
-		var techRatings = Publication.Ratings
-			.Where(r => r.TechQuality.HasValue)
-			.Select(r => r.TechQuality!.Value)
-			.ToList();
-
-		var overallRatings = entertainmentRatings
-			.Concat(techRatings)
-			.ToList();
-
-		Publication.AverageEntertainmentRating = entertainmentRatings.Any()
-			? Math.Round(entertainmentRatings.Average(), 2)
-			: 0;
-
-		Publication.AverageTechRating = techRatings.Any()
-			? Math.Round(techRatings.Average(), 2)
-			: 0;
-
 		// Entertainment counts 2:1 over Tech
-		Publication.OverallRating = overallRatings.Any()
-			? Math.Round(overallRatings.Average(), 2)
+		Publication.OverallRating = Publication.Ratings.Any()
+			? Math.Round(Publication.Ratings.Select(r => r.Rating).Average(), 2)
 			: 0;
-
-		_cache.Set(CacheKeys.MovieRatingKey + Id, Publication);
 
 		return Page();
 	}

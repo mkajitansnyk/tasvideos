@@ -4,15 +4,16 @@ using TASVideos.Core.Settings;
 using TASVideos.Data.Entity;
 using TASVideos.Data.Entity.Awards;
 using TASVideos.Data.Entity.Game;
+using TASVideos.MovieParsers.Result;
 using static TASVideos.Data.Entity.SubmissionStatus;
 
 namespace TASVideos.Core.Tests.Services;
 
 [TestClass]
-public class SubmissionServiceTests
+public class QueueServiceTests
 {
 	private const int MinimumHoursBeforeJudgment = 72;
-	private readonly SubmissionService _submissionService;
+	private readonly QueueService _queueService;
 	private readonly TestDbContext _db;
 	private readonly Mock<IYoutubeSync> _youtubeSync;
 	private readonly Mock<ITASVideoAgent> _tva;
@@ -27,19 +28,19 @@ public class SubmissionServiceTests
 	private static readonly IEnumerable<PermissionTo> PublisherPerms = new[] { PermissionTo.SubmitMovies, PermissionTo.PublishMovies };
 	private static readonly IEnumerable<PermissionTo> Override = new[] { PermissionTo.OverrideSubmissionStatus };
 
-	public SubmissionServiceTests()
+	public QueueServiceTests()
 	{
 		_db = TestDbContext.Create();
 		_youtubeSync = new Mock<IYoutubeSync>();
 		_tva = new Mock<ITASVideoAgent>();
 		var settings = new AppSettings { MinimumHoursBeforeJudgment = MinimumHoursBeforeJudgment };
-		_submissionService = new SubmissionService(settings, _db, _youtubeSync.Object, _tva.Object);
+		_queueService = new QueueService(settings, _db, _youtubeSync.Object, _tva.Object);
 	}
 
 	[TestMethod]
 	public void Published_CanNotChange()
 	{
-		var result = _submissionService.AvailableStatuses(
+		var result = _queueService.AvailableStatuses(
 			Published,
 			Override,
 			OldEnoughToBeJudged,
@@ -64,7 +65,7 @@ public class SubmissionServiceTests
 	public void Submitter_BasicPerms(SubmissionStatus current, IEnumerable<SubmissionStatus> canChangeTo)
 	{
 		var expected = new[] { current }.Concat(canChangeTo).ToList();
-		var result = _submissionService.AvailableStatuses(
+		var result = _queueService.AvailableStatuses(
 			current,
 			BasicUserPerms,
 			OldEnoughToBeJudged,
@@ -92,7 +93,7 @@ public class SubmissionServiceTests
 	public void Submitter_IsJudge(SubmissionStatus current, IEnumerable<SubmissionStatus> canChangeTo)
 	{
 		var expected = new[] { current }.Concat(canChangeTo).ToList();
-		var result = _submissionService.AvailableStatuses(
+		var result = _queueService.AvailableStatuses(
 			current,
 			JudgePerms,
 			OldEnoughToBeJudged,
@@ -120,7 +121,7 @@ public class SubmissionServiceTests
 	public void Submitter_IsPublisher(SubmissionStatus current, IEnumerable<SubmissionStatus> canChangeTo)
 	{
 		var expected = new[] { current }.Concat(canChangeTo).ToList();
-		var result = _submissionService.AvailableStatuses(
+		var result = _queueService.AvailableStatuses(
 			current,
 			PublisherPerms,
 			OldEnoughToBeJudged,
@@ -148,7 +149,7 @@ public class SubmissionServiceTests
 	public void Judge_ButNotSubmitter_BeforeAllowedJudgmentWindow(SubmissionStatus current, IEnumerable<SubmissionStatus> canChangeTo)
 	{
 		var expected = new[] { current }.Concat(canChangeTo).ToList();
-		var result = _submissionService.AvailableStatuses(
+		var result = _queueService.AvailableStatuses(
 			current,
 			JudgePerms,
 			TooNewToJudge,
@@ -176,7 +177,7 @@ public class SubmissionServiceTests
 	public void Judge_ButNotSubmitter_AfterAllowedJudgmentWindow(SubmissionStatus current, IEnumerable<SubmissionStatus> canChangeTo)
 	{
 		var expected = new[] { current }.Concat(canChangeTo).ToList();
-		var result = _submissionService.AvailableStatuses(
+		var result = _queueService.AvailableStatuses(
 			current,
 			JudgePerms,
 			OldEnoughToBeJudged,
@@ -204,7 +205,7 @@ public class SubmissionServiceTests
 	public void Publisher_ButNotSubmitter_BeforeAllowedJudgmentWindow_CanNotChangeStatus(SubmissionStatus current, IEnumerable<SubmissionStatus> canChangeTo)
 	{
 		var expected = new[] { current }.Concat(canChangeTo).ToList();
-		var result = _submissionService.AvailableStatuses(
+		var result = _queueService.AvailableStatuses(
 			current,
 			PublisherPerms,
 			TooNewToJudge,
@@ -232,7 +233,7 @@ public class SubmissionServiceTests
 	public void Publisher_ButNotSubmitter_AfterAllowedJudgmentWindow(SubmissionStatus current, IEnumerable<SubmissionStatus> canChangeTo)
 	{
 		var expected = new[] { current }.Concat(canChangeTo).ToList();
-		var result = _submissionService.AvailableStatuses(
+		var result = _queueService.AvailableStatuses(
 			current,
 			PublisherPerms,
 			OldEnoughToBeJudged,
@@ -259,7 +260,7 @@ public class SubmissionServiceTests
 
 		foreach (var current in exceptPublished)
 		{
-			var result = _submissionService.AvailableStatuses(
+			var result = _queueService.AvailableStatuses(
 				current,
 				Override,
 				TooNewToJudge,
@@ -276,7 +277,7 @@ public class SubmissionServiceTests
 	[TestMethod]
 	public async Task CanUnpublish_NotFound()
 	{
-		var result = await _submissionService.CanUnpublish(int.MaxValue);
+		var result = await _queueService.CanUnpublish(int.MaxValue);
 		Assert.IsNotNull(result);
 		Assert.AreEqual(UnpublishResult.UnpublishStatus.NotFound, result.Status);
 		Assert.IsTrue(string.IsNullOrWhiteSpace(result.ErrorMessage));
@@ -292,7 +293,7 @@ public class SubmissionServiceTests
 		_db.PublicationAwards.Add(new PublicationAward { PublicationId = publicationId, AwardId = awardId });
 		await _db.SaveChangesAsync();
 
-		var result = await _submissionService.CanUnpublish(publicationId);
+		var result = await _queueService.CanUnpublish(publicationId);
 		Assert.IsNotNull(result);
 		Assert.AreEqual(UnpublishResult.UnpublishStatus.NotAllowed, result.Status);
 		Assert.IsTrue(!string.IsNullOrWhiteSpace(result.ErrorMessage));
@@ -306,7 +307,7 @@ public class SubmissionServiceTests
 		_db.Publications.Add(new Publication { Id = publicationId, Title = "Test Publication" });
 		await _db.SaveChangesAsync();
 
-		var result = await _submissionService.CanUnpublish(publicationId);
+		var result = await _queueService.CanUnpublish(publicationId);
 		Assert.IsNotNull(result);
 		Assert.AreEqual(UnpublishResult.UnpublishStatus.Success, result.Status);
 		Assert.IsTrue(string.IsNullOrWhiteSpace(result.ErrorMessage));
@@ -316,7 +317,7 @@ public class SubmissionServiceTests
 	[TestMethod]
 	public async Task Unpublish_NotFound()
 	{
-		var result = await _submissionService.Unpublish(int.MaxValue);
+		var result = await _queueService.Unpublish(int.MaxValue);
 		Assert.IsNotNull(result);
 		Assert.AreEqual(UnpublishResult.UnpublishStatus.NotFound, result.Status);
 		Assert.IsTrue(string.IsNullOrWhiteSpace(result.ErrorMessage));
@@ -336,7 +337,7 @@ public class SubmissionServiceTests
 		_db.PublicationAwards.Add(new PublicationAward { PublicationId = publicationId, AwardId = awardId });
 		await _db.SaveChangesAsync();
 
-		var result = await _submissionService.Unpublish(publicationId);
+		var result = await _queueService.Unpublish(publicationId);
 		Assert.IsNotNull(result);
 		Assert.AreEqual(UnpublishResult.UnpublishStatus.NotAllowed, result.Status);
 		Assert.IsTrue(!string.IsNullOrWhiteSpace(result.ErrorMessage));
@@ -388,7 +389,7 @@ public class SubmissionServiceTests
 		});
 		await _db.SaveChangesAsync();
 
-		var result = await _submissionService.Unpublish(publicationId);
+		var result = await _queueService.Unpublish(publicationId);
 
 		// Result must be correct
 		Assert.IsNotNull(result);
@@ -478,7 +479,7 @@ public class SubmissionServiceTests
 		});
 
 		await _db.SaveChangesAsync();
-		var result = await _submissionService.Unpublish(publicationId);
+		var result = await _queueService.Unpublish(publicationId);
 
 		// Result must be correct
 		Assert.IsNotNull(result);
@@ -493,5 +494,95 @@ public class SubmissionServiceTests
 
 		// Obsoleted movie youtube url must be synced
 		_youtubeSync.Verify(v => v.SyncYouTubeVideo(It.IsAny<YoutubeVideo>()));
+	}
+
+	[TestMethod]
+	[ExpectedException(typeof(InvalidOperationException))]
+	public async Task MapParsedResult_ThrowsIfParsingIsFailed()
+	{
+		await _queueService.MapParsedResult(new TestParseResult { Success = false }, new Submission());
+	}
+
+	[TestMethod]
+	public async Task MapParsedResult_ErrorIfUnknownSystem()
+	{
+		_db.GameSystems.Add(new GameSystem { Code = "NES" });
+		await _db.SaveChangesAsync();
+
+		var actual = await _queueService.MapParsedResult(new TestParseResult { Success = true, SystemCode = "Does not exist" }, new Submission());
+
+		Assert.IsTrue(!string.IsNullOrWhiteSpace(actual));
+	}
+
+	[TestMethod]
+	public async Task MapParsedResult_NoOverride_Success()
+	{
+		const string system = "NES";
+		const double frameRate = 60.0;
+		const RegionType region = RegionType.Ntsc;
+		const MovieStartType startType = MovieStartType.Savestate;
+		const int frames = 42069;
+		const int rerecordCount = 420;
+		const string fileExtension = ".test";
+		var entry = _db.GameSystems.Add(new GameSystem { Code = system });
+		_db.GameSystemFrameRates.Add(new GameSystemFrameRate
+		{
+			GameSystemId = entry.Entity.Id,
+			FrameRate = frameRate,
+			RegionCode = region.ToString().ToUpper()
+		});
+		await _db.SaveChangesAsync();
+
+		var parseResult = new TestParseResult
+		{
+			Success = true,
+			SystemCode = system,
+			FrameRateOverride = null,
+			Region = region,
+			StartType = startType,
+			Frames = frames,
+			RerecordCount = rerecordCount,
+			FileExtension = fileExtension
+		};
+
+		var submission = new Submission();
+
+		var actual = await _queueService.MapParsedResult(parseResult, submission);
+		Assert.IsTrue(string.IsNullOrEmpty(actual));
+		Assert.IsNotNull(submission.SystemFrameRate);
+		Assert.AreEqual(frameRate, submission.SystemFrameRate.FrameRate);
+		Assert.AreEqual(region.ToString().ToUpper(), submission.SystemFrameRate.RegionCode);
+		Assert.AreEqual((int)startType, submission.MovieStartType);
+		Assert.AreEqual(frames, submission.Frames);
+		Assert.AreEqual(rerecordCount, submission.RerecordCount);
+		Assert.AreEqual(fileExtension, submission.MovieExtension);
+		Assert.IsNotNull(submission.System);
+		Assert.AreEqual(system, submission.System.Code);
+	}
+
+	[TestMethod]
+	public async Task MapParsedResult_WithOverride_Success()
+	{
+		const string system = "NES";
+		const double frameRateOverride = 61.0;
+		const RegionType region = RegionType.Ntsc;
+		var entry = _db.GameSystems.Add(new GameSystem { Code = system });
+		await _db.SaveChangesAsync();
+		var parseResult = new TestParseResult
+		{
+			Success = true,
+			SystemCode = system,
+			FrameRateOverride = frameRateOverride,
+			Region = region
+		};
+
+		var submission = new Submission();
+
+		var actual = await _queueService.MapParsedResult(parseResult, submission);
+		Assert.IsTrue(string.IsNullOrEmpty(actual));
+		Assert.IsNotNull(submission.SystemFrameRate);
+		Assert.AreEqual(frameRateOverride, submission.SystemFrameRate.FrameRate);
+		Assert.AreEqual(region.ToString().ToUpper(), submission.SystemFrameRate.RegionCode);
+		Assert.AreEqual(entry.Entity, submission.SystemFrameRate.System);
 	}
 }

@@ -129,31 +129,12 @@ public class UserManager : UserManager<User>
 
 		model.Ratings = await _db.PublicationRatings
 			.ForUser(model.Id)
-			.GroupBy(
-				gkey => new
-				{
-					gkey.PublicationId,
-					gkey.Publication!.Title,
-					gkey.Publication.ObsoletedById
-				},
-				gvalue => new
-				{
-					gvalue.Type,
-					gvalue.Value
-				})
 			.Select(pr => new UserRatings.Rating
 			{
-				PublicationId = pr.Key.PublicationId,
-				PublicationTitle = pr.Key.Title,
-				IsObsolete = pr.Key.ObsoletedById.HasValue,
-				Entertainment = pr
-					.Where(a => a.Type == PublicationRatingType.Entertainment)
-					.Select(a => a.Value)
-					.Sum(),
-				Tech = pr
-					.Where(a => a.Type == PublicationRatingType.TechQuality)
-					.Select(a => a.Value)
-					.Sum()
+				PublicationId = pr.PublicationId,
+				PublicationTitle = pr.Publication!.Title,
+				IsObsolete = pr.Publication.ObsoletedById.HasValue,
+				Value = pr.Value
 			})
 			.ToListAsync();
 
@@ -249,7 +230,7 @@ public class UserManager : UserManager<User>
 			model.PlayerPoints = (int)Math.Round(await _pointsService.PlayerPoints(model.Id));
 
 			model.PublishedSystems = await _db.Publications
-				.Where(p => p.Authors.Any(a => a.UserId == model.Id))
+				.ForAuthor(model.Id)
 				.Select(p => p.System!.Code)
 				.Distinct()
 				.ToListAsync();

@@ -3,38 +3,13 @@ using TASVideos.Core.Services.Youtube;
 using TASVideos.Core.Settings;
 using TASVideos.Data;
 using TASVideos.Data.Entity;
+using TASVideos.Data.Entity.Game;
+using TASVideos.MovieParsers.Result;
 using static TASVideos.Data.Entity.SubmissionStatus;
 
 namespace TASVideos.Core.Services;
 
-// TODO: move me
-public interface ISubmissionDisplay
-{
-	SubmissionStatus Status { get; }
-	DateTime Submitted { get; }
-}
-
-// TODO: move me
-public record UnpublishResult(
-	UnpublishResult.UnpublishStatus Status,
-	string PublicationTitle,
-	string ErrorMessage)
-{
-	public enum UnpublishStatus { Success, NotFound, NotAllowed }
-
-	internal static UnpublishResult NotFound() => new(UnpublishStatus.NotFound, "", "");
-
-	internal static UnpublishResult HasAwards(string publicationTitle) => new(
-		UnpublishStatus.NotAllowed,
-		publicationTitle,
-		"Cannot unpublish a publication that has awards");
-
-	internal static UnpublishResult Success(string publicationTitle)
-		=> new(UnpublishStatus.Success, publicationTitle, "");
-}
-
-// TODO: rename this to QueueService
-public interface ISubmissionService
+public interface IQueueService
 {
 	/// <summary>
 	/// Returns a list of all available statuses a submission could be set to
@@ -58,16 +33,22 @@ public interface ISubmissionService
 	/// Deletes a publication and returns the corresponding submission back to the submission queue
 	/// </summary>
 	Task<UnpublishResult> Unpublish(int publicationId);
+
+	/// <summary>
+	/// Writes the parsed values from the <see cref="IParseResult"/> into the given submission
+	/// </summary>
+	/// <returns>The error message if an error occurred, else an empty string</returns>
+	Task<string> MapParsedResult(IParseResult parseResult, Submission submission);
 }
 
-internal class SubmissionService : ISubmissionService
+internal class QueueService : IQueueService
 {
 	private readonly int _minimumHoursBeforeJudgment;
 	private readonly ApplicationDbContext _db;
 	private readonly IYoutubeSync _youtubeSync;
 	private readonly ITASVideoAgent _tva;
 
-	public SubmissionService(
+	public QueueService(
 		AppSettings settings,
 		ApplicationDbContext db,
 		IYoutubeSync youtubeSync,
@@ -304,5 +285,61 @@ internal class SubmissionService : ISubmissionService
 		}
 
 		return UnpublishResult.Success(publication.Title);
+	}
+
+	public async Task<string> MapParsedResult(IParseResult parseResult, Submission submission)
+	{
+		if (!parseResult.Success)
+		{
+			throw new InvalidOperationException("Cannot mapped failed parse result.");
+		}
+
+		var system = await _db.GameSystems
+			.ForCode(parseResult.SystemCode)
+			.SingleOrDefaultAsync();
+
+		if (system == null)
+		{
+			return $"Unknown system type of {parseResult.SystemCode}";
+		}
+
+		submission.MovieStartType = (int)parseResult.StartType;
+		submission.Frames = parseResult.Frames;
+		submission.RerecordCount = parseResult.RerecordCount;
+		submission.MovieExtension = parseResult.FileExtension;
+		submission.System = system;
+
+		if (parseResult.FrameRateOverride.HasValue)
+		{
+			// ReSharper disable CompareOfFloatsByEqualityOperator
+			var frameRate = await _db.GameSystemFrameRates
+				.ForSystem(submission.System.Id)
+				.FirstOrDefaultAsync(sf => sf.FrameRate == parseResult.FrameRateOverride.Value);
+
+			if (frameRate == null)
+			{
+				frameRate = new GameSystemFrameRate
+				{
+					System = submission.System,
+					FrameRate = parseResult.FrameRateOverride.Value,
+					RegionCode = parseResult.Region.ToString().ToUpper()
+				};
+				_db.GameSystemFrameRates.Add(frameRate);
+				await _db.SaveChangesAsync();
+			}
+
+			submission.SystemFrameRate = frameRate;
+		}
+		else
+		{
+			// SingleOrDefault should work here because the only time there could be more than one for a system and region are formats that return a framerate override
+			// Those systems should never hit this code block.  But just in case.
+			submission.SystemFrameRate = await _db.GameSystemFrameRates
+				.ForSystem(submission.System.Id)
+				.ForRegion(parseResult.Region.ToString().ToUpper())
+				.FirstOrDefaultAsync();
+		}
+
+		return "";
 	}
 }
