@@ -1,5 +1,4 @@
-﻿using AutoMapper;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TASVideos.Core.Services;
 using TASVideos.Data;
@@ -13,16 +12,13 @@ namespace TASVideos.ViewComponents;
 public class DisplayMovies : ViewComponent
 {
 	private readonly ApplicationDbContext _db;
-	private readonly IMapper _mapper;
 	private readonly IMovieSearchTokens _tokens;
 
 	public DisplayMovies(
 		ApplicationDbContext db,
-		IMapper mapper,
 		IMovieSearchTokens tokens)
 	{
 		_db = db;
-		_mapper = mapper;
 		_tokens = tokens;
 	}
 
@@ -38,7 +34,7 @@ public class DisplayMovies : ViewComponent
 		IList<int> id,
 		IList<int> game,
 		IList<int> author,
-		string sort,
+		string? sort,
 		int? limit)
 	{
 		var tokenLookup = await _tokens.GetTokens();
@@ -49,7 +45,7 @@ public class DisplayMovies : ViewComponent
 			SystemCodes = tokenLookup.SystemCodes.Where(s => systemCode.Select(c => c.ToLower()).Contains(s)),
 			ShowObsoleted = obs,
 			OnlyObsoleted = obsonly,
-			SortBy = sort,
+			SortBy = sort?.ToLower() ?? "",
 			Limit = limit,
 			Years = tokenLookup.Years.Where(year.Contains),
 			Tags = tokenLookup.Tags.Where(t => tag.Select(tt => tt.ToLower()).Contains(t)),
@@ -66,9 +62,9 @@ public class DisplayMovies : ViewComponent
 			return View(new List<PublicationDisplayModel>());
 		}
 
-		var results = await _mapper.ProjectTo<PublicationDisplayModel>(
-			_db.Publications
-				.FilterByTokens(searchModel))
+		var results = await _db.Publications
+			.FilterByTokens(searchModel)
+			.ToViewModel(searchModel.SortBy == "y")
 			.ToListAsync();
 		return View(results);
 	}

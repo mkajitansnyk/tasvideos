@@ -125,32 +125,17 @@ public class EditModel : BasePageModel
 
 	private async Task PopulateDropdowns(string systemCode, int? obsoletedById)
 	{
-		var userPermissions = User.Permissions();
 		AvailableFlags = await _db.Flags
-			.Select(f => new SelectListItem
-			{
-				Text = f.Name,
-				Value = f.Id.ToString(),
-				Disabled = f.PermissionRestriction.HasValue
-					&& !userPermissions.Contains(f.PermissionRestriction.Value)
-			})
+			.ToDropDown(User.Permissions())
 			.ToListAsync();
 		AvailableTags = await _db.Tags
-			.Select(f => new SelectListItem
-			{
-				Text = f.DisplayName,
-				Value = f.Id.ToString()
-			})
+			.ToDropdown()
 			.ToListAsync();
 		AvailableMoviesForObsoletedBy = await _db.Publications
 			.Where(p => p.ObsoletedById == null || p.Id == obsoletedById)
 			.Where(p => p.System!.Code == systemCode)
 			.Where(p => p.Id != Id)
-			.Select(p => new SelectListItem
-			{
-				Text = p.Title,
-				Value = p.Id.ToString()
-			})
+			.ToDropdown()
 			.OrderBy(p => p.Text)
 			.ToListAsync();
 		Files = await _mapper.ProjectTo<PublicationFileDisplayModel>(
@@ -204,10 +189,7 @@ public class EditModel : BasePageModel
 
 		publication.ObsoletedById = model.ObsoletedBy;
 		publication.EmulatorVersion = model.EmulatorVersion;
-		publication.AdditionalAuthors = string.IsNullOrWhiteSpace(model.AdditionalAuthors)
-			? null
-			: model.AdditionalAuthors;
-
+		publication.AdditionalAuthors = model.AdditionalAuthors.NullIfWhitespace();
 		publication.Authors.Clear();
 		publication.Authors.AddRange(await _db.Users
 			.Where(u => Publication.Authors.Contains(u.UserName))
@@ -230,12 +212,7 @@ public class EditModel : BasePageModel
 		_db.PublicationFlags.RemoveRange(
 			_db.PublicationFlags.Where(pf => pf.PublicationId == publication.Id));
 
-		publication.PublicationFlags.AddRange(model.SelectedFlags
-			.Select(f => new PublicationFlag
-			{
-				PublicationId = publication.Id,
-				FlagId = f
-			}));
+		publication.PublicationFlags.AddFlags(model.SelectedFlags);
 
 		externalMessages.AddRange((await _tagsService
 			.GetDiff(publication.PublicationTags.Select(p => p.TagId), model.SelectedTags))
@@ -245,12 +222,7 @@ public class EditModel : BasePageModel
 		_db.PublicationTags.RemoveRange(
 			_db.PublicationTags.Where(pt => pt.PublicationId == publication.Id));
 
-		publication.PublicationTags.AddRange(model.SelectedTags
-			.Select(t => new PublicationTag
-			{
-				PublicationId = publication.Id,
-				TagId = t
-			}));
+		publication.PublicationTags.AddTags(model.SelectedTags);
 
 		await _db.SaveChangesAsync();
 

@@ -7,6 +7,7 @@ public static class WikiModules
 	public const string ActiveTab = "activetab";
 	public const string Addresses = "addresses";
 	public const string Awards = "awards";
+	public const string BannedAvatarSites = "bannedavatarsites";
 	public const string BrokenLinks = "brokenlinks";
 	public const string DisplayGameName = "displaygamename";
 	public const string DisplayMiniMovie = "displayminimovie";
@@ -33,6 +34,7 @@ public static class WikiModules
 	public const string PlatformAuthorList = "platformtaserlists";
 	public const string PlatformFramerates = "platformframerates";
 	public const string PlayerPointsTable = "playerpointstable";
+	public const string PublicationPoints = "publicationpoints";
 	public const string RejectedSubmissions = "rejectedsubmissions";
 	public const string SupportedMovieTypes = "submittableformats";
 	public const string TabularMovieList = "tabularmovielist";
