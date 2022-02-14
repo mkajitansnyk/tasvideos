@@ -41,9 +41,7 @@ public class User : IdentityUser<int>, ITrackable
 
 	public PreferredPronounTypes PreferredPronouns { get; set; } = PreferredPronounTypes.Unspecified;
 
-	// TODO: migration to remove this column
-	[StringLength(32)]
-	public string? LegacyPassword { get; set; }
+	public bool EmailOnPrivateMessage { get; set; }
 
 	public virtual ICollection<UserRole> UserRoles { get; set; } = new HashSet<UserRole>();
 	public virtual ICollection<SubmissionAuthor> Submissions { get; set; } = new HashSet<SubmissionAuthor>();
