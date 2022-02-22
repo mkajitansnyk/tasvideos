@@ -227,7 +227,9 @@ public class UserManager : UserManager<User>
 				.ToListAsync();
 
 			// TODO: round to 1 digit?
-			model.PlayerPoints = (int)Math.Round(await _pointsService.PlayerPoints(model.Id));
+			var (points, rank) = await _pointsService.PlayerPoints(model.Id);
+			model.PlayerPoints = (int)Math.Round(points);
+			model.PlayerRank = rank;
 
 			model.PublishedSystems = await _db.Publications
 				.ForAuthor(model.Id)
@@ -458,5 +460,20 @@ public class UserManager : UserManager<User>
 				// Do nothing, we do not want to block the rest of the request
 			}
 		}
+	}
+
+	public async Task<IEnumerable<RoleDto>> UserRoles(int userId)
+	{
+		return await _db.Users
+			.Where(u => u.Id == userId)
+			.SelectMany(u => u.UserRoles)
+			.Select(ur => ur.Role!)
+			.Select(r => new RoleDto
+			{
+				Id = r.Id,
+				Name = r.Name,
+				Description = r.Description
+			})
+			.ToListAsync();
 	}
 }

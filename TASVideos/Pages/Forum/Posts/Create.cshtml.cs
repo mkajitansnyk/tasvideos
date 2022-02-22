@@ -108,10 +108,7 @@ public class CreateModel : BaseForumModel
 			.Reverse()
 			.ToListAsync();
 
-		UserAvatars = await _db.Users
-			.Where(u => u.Id == User.GetUserId())
-			.Select(u => new AvatarUrls(u.Avatar, u.MoodAvatarUrlBase))
-			.SingleAsync();
+		UserAvatars = await _forumService.UserAvatars(User.GetUserId());
 
 		return Page();
 	}
@@ -123,8 +120,7 @@ public class CreateModel : BaseForumModel
 		{
 			// We have to consider direct posting to this call, including "over-posting",
 			// so all of this logic is necessary
-			var isLocked = await _db.ForumTopics
-				.AnyAsync(t => t.Id == TopicId && t.IsLocked);
+			var isLocked = await _forumService.IsTopicLocked(TopicId);
 			if (isLocked && !User.Has(PermissionTo.PostInLockedTopics))
 			{
 				return AccessDenied();
