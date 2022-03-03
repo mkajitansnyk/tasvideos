@@ -10,6 +10,7 @@ internal class SystemCodes
 	public const string Coleco = "coleco";
 	public const string Dos = "dos";
 	public const string Ds = "ds";
+	public const string Dsi = "dsi";
 	public const string Fds = "fds";
 	public const string Flash = "flash";
 	public const string GameBoy = "gb";
@@ -22,6 +23,7 @@ internal class SystemCodes
 	public const string Linux = "linux";
 	public const string Lynx = "lynx";
 	public const string Msx = "msx";
+	public const string N3ds = "3ds";
 	public const string Ngb = "ngb";
 	public const string Nes = "nes";
 	public const string Odyssey2 = "o2";

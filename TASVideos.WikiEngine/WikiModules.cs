@@ -23,7 +23,7 @@ public static class WikiModules
 	public const string MovieChangeLog = "moviechangelog";
 	public const string MovieMaintenanceLog = "moviemaintlog";
 	public const string MoviesByAuthor = "moviesbyplayer";
-	public const string MoviesByCategory = "moviesearch_category";
+	public const string PublicationsByTag = "publicationsbytag";
 	public const string MoviesGameList = "moviesgamelist";
 	public const string MoviesList = "movieslist";
 	public const string MovieStatistics = "moviestatistics";
@@ -36,7 +36,7 @@ public static class WikiModules
 	public const string PlayerPointsTable = "playerpointstable";
 	public const string PublicationPoints = "publicationpoints";
 	public const string RejectedSubmissions = "rejectedsubmissions";
-	public const string SupportedMovieTypes = "submittableformats";
+	public const string SupportedMovieTypes = "supportedmovietypes";
 	public const string TabularMovieList = "tabularmovielist";
 	public const string TimeSinceDate = "timesincedate";
 	public const string TopicFeed = "topicfeed";

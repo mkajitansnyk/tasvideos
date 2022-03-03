@@ -8,7 +8,7 @@
 @if (Model.HighlightedPost is not null)
 {
 	var description = $"{Model.Topic.ForumName} → {Model.Topic.Title}";
-	if (!String.IsNullOrWhiteSpace(Model.HighlightedPost.Subject) && Model.Topic.Title != Model.HighlightedPost.Subject)
+	if (!string.IsNullOrWhiteSpace(Model.HighlightedPost.Subject) && Model.Topic.Title != Model.HighlightedPost.Subject)
 	{
 		description += $"\nSubject: {Model.HighlightedPost.Subject}";
 	}
@@ -39,16 +39,16 @@
 
 @section PageTitle {
 	<div class="container mb-2">
-		<nav aria-label="breadcrumb" class="card card-header d-block mb-2">
+		<nav aria-label="breadcrumb" class="card card-header d-block">
 			<ol class="breadcrumb m-0">
 				<li class="breadcrumb-item"><a asp-page="/Forum/Index">Forum</a></li>
 				<li class="breadcrumb-item"><a asp-page="/Forum/Subforum/Index" asp-route-id="@Model.Topic.ForumId">@Model.Topic.ForumName</a></li>
 				<li class="breadcrumb-item active" aria-current="page">
 					<h1>@(Model.Topic.Title)</h1>
-					<h6 condition="@Model.Topic.IsLocked" class="alert alert-danger py-2 m-0"><i class="fa fa-lock"></i> Locked</h6>
 				</li>
 			</ol>
 		</nav>
+		<h6 condition="@Model.Topic.IsLocked" class="alert alert-danger py-2 m-0"><i class="fa fa-lock"></i> Locked</h6>
 	</div>
 }
 
@@ -144,29 +144,30 @@
 	   class="btn btn-primary btn-sm float-end">
 		<span class="fa fa-plus"></span> Post
 	</a>
-	<nav aria-label="breadcrumb" class="card card-header d-block mb-2">
+	<nav aria-label="breadcrumb" class="card card-header d-block mt-2">
 		<ol class="breadcrumb m-0">
 			<li class="breadcrumb-item"><a asp-page="/Forum/Index">Forum</a></li>
 			<li class="breadcrumb-item"><a asp-page="/Forum/Subforum/Index" asp-route-id="@Model.Topic.ForumId">@Model.Topic.ForumName</a></li>
 			<li class="breadcrumb-item active" aria-current="page">
-				<p>@(Model.Topic.Title)</p>
-				<p condition="@Model.Topic.IsLocked" class="alert alert-danger py-2 m-0"><i class="fa fa-lock"></i> Locked</p>
+				<p class="m-0">@(Model.Topic.Title)</p>
 			</li>
 		</ol>
 	</nav>
+	<p condition="@Model.Topic.IsLocked" class="alert alert-danger py-2 m-0"><i class="fa fa-lock"></i> Locked</p>
 </fullrow>
-
-<script condition="@(Model.SaveActivity)">
-	{
-		let topicId = '@Model.Id';
-		let currentTime = Math.floor(Date.now() / 1000);
-		let visitedTopics = localStorage.getItem('VisitedTopics');
-		if (visitedTopics !== null){
-			visitedTopics = JSON.parse(visitedTopics);
-			visitedTopics[topicId] = currentTime;
-		}else{
-			visitedTopics = {[topicId]: currentTime};
+@section Scripts {
+	<script condition="@(Model.SaveActivity)">
+		{
+			let topicId = '@Model.Id';
+			let currentTime = Math.floor(Date.now() / 1000);
+			let visitedTopics = localStorage.getItem('VisitedTopics');
+			if (visitedTopics !== null){
+				visitedTopics = JSON.parse(visitedTopics);
+				visitedTopics[topicId] = currentTime;
+			}else{
+				visitedTopics = {[topicId]: currentTime};
+			}
+			localStorage.setItem('VisitedTopics', JSON.stringify(visitedTopics));
 		}
-		localStorage.setItem('VisitedTopics', JSON.stringify(visitedTopics));
-	}
-</script>
+	</script>
+}
