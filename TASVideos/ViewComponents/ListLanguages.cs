@@ -19,7 +19,7 @@ public class ListLanguages : ViewComponent
 		_wikiPages = wikiPages;
 	}
 
-	public async Task<IViewComponentResult> InvokeAsync(WikiPage? pageData, bool isTranslation)
+	public async Task<IViewComponentResult> InvokeAsync(WikiPage? pageData)
 	{
 		if (string.IsNullOrWhiteSpace(pageData?.PageName))
 		{
@@ -29,6 +29,8 @@ public class ListLanguages : ViewComponent
 		string pageName = pageData.PageName;
 		var languages = new List<LanguageEntry>();
 
+		bool isTranslation = await _languages.IsLanguagePage(pageName);
+
 		if (isTranslation)
 		{
 			// Actual translation pages should be nested from the language page
@@ -37,7 +39,7 @@ public class ListLanguages : ViewComponent
 				return new ContentViewComponentResult("");
 			}
 
-			pageName = string.Join("", pageName.Split('/').Skip(1));
+			pageName = string.Join("/", pageName.Split('/').Skip(1));
 
 			// Translations should also include the original link to the English version
 			languages.Add(new LanguageEntry
@@ -65,7 +67,8 @@ public class ListLanguages : ViewComponent
 		var existingLanguages = new List<LanguageEntry>();
 		foreach (var lang in languages)
 		{
-			if (await _wikiPages.Exists(lang.Path))
+			if (await _wikiPages.Exists(lang.Path)
+				&& !pageData.PageName.StartsWith(lang.LanguageCode + "/"))
 			{
 				existingLanguages.Add(lang);
 			}
