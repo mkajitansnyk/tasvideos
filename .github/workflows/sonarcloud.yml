@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - masin
+      - main
   pull_request: {}
 jobs:
   sonarcloud:
