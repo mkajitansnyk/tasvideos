@@ -1,17 +1,17 @@
+name: Semgrep.dev
+
 on:
   workflow_dispatch:
-  pull_request: {}
+  pull_request:
   push:
-    branches:
-    - main
-name: Semgrep
+    branches: main
+
 jobs:
-  semgrep:
-    name: Scan
+  build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - uses: returntocorp/semgrep-action@v1
-      with:
-        auditOn: push
-        publishToken: ${{ secrets.SEMGREP_APP_TOKEN }}
+      - uses: actions/checkout@v2
+      - uses: returntocorp/semgrep-action@v1
+        with:
+          auditOn: push
+          publishToken: ${{ secrets.SEMGREP_APP_TOKEN }}
