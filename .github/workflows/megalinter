@@ -1,0 +1,8 @@
+name: MegaLinter
+
+on:
+  workflow_dispatch:
+  push:
+  pull_request: main
+    
+  uses: megalinter/megalinter@v5.10.0
