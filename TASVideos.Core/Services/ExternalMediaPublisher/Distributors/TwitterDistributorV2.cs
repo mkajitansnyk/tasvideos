@@ -1,9 +1,7 @@
-﻿using System.Diagnostics;
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using MimeKit;
 using TASVideos.Core.HttpClientExtensions;
 using TASVideos.Core.Services.Cache;
 using TASVideos.Core.Settings;
@@ -109,8 +107,8 @@ public class TwitterDistributorV2 : IPostDistributor
 
 	public void CacheValues()
 	{
-		_redisCacheService.Set(TwitterDistributorConstants.RefreshToken, _refreshToken, Durations.OneWeekInSeconds);
-		_redisCacheService.Set(TwitterDistributorConstants.RefreshTokenTime, _nextRefreshTime.ToString(), Durations.OneWeekInSeconds);
+		_redisCacheService.Set(TwitterDistributorConstants.RefreshToken, _refreshToken, Durations.OneYearInSeconds);
+		_redisCacheService.Set(TwitterDistributorConstants.RefreshTokenTime, _nextRefreshTime.ToString(), Durations.OneYearInSeconds);
 	}
 
 	public async Task RequestTokensFromTwitter()
