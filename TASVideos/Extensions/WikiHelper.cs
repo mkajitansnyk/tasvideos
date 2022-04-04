@@ -23,7 +23,19 @@ public static class WikiHelper
 			return userPermissions.Contains(PermissionTo.EditGameResources)
 				|| userPermissions.Contains(PermissionTo.EditHomePage)
 				|| userPermissions.Contains(PermissionTo.EditWikiPages)
-				|| userPermissions.Contains(PermissionTo.EditSystemPages);
+				|| userPermissions.Contains(PermissionTo.EditSystemPages)
+				|| userPermissions.Contains(PermissionTo.EditSubmissions)
+				|| userPermissions.Contains(PermissionTo.EditPublicationMetaData);
+		}
+
+		if (IsPublicationPage(pageName).HasValue)
+		{
+			return userPermissions.Contains(PermissionTo.EditPublicationMetaData);
+		}
+
+		if (IsSubmissionPage(pageName).HasValue)
+		{
+			return userPermissions.Contains(PermissionTo.EditSubmissions);
 		}
 
 		if (pageName.StartsWith("GameResources/"))
