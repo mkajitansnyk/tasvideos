@@ -1,0 +1,10 @@
+ENABLE_LINTERS:
+  - standard      # 
+  - dotnet-format # C#
+  - sqlfluff      # SQL
+  - sql-lint      # SQL
+  - stylelint     # CSS
+  - scss-lint     # SCSS
+  - jscpd         # Clones and Duplicates
+  - shellcheck    # Shell/Bash
+  - bash-exec     # Shell/Bash
